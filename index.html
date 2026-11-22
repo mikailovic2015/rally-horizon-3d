@@ -1170,7 +1170,7 @@
       <div class="set-row" style="margin-bottom:10px;">
         <span>Сервер:</span>
         <input type="text" id="mp-server-url" placeholder="rally-horizon-server.onrender.com" 
-               value="" style="flex:1; background:#0a0e14; color:#00f0ff; border:1px solid #00f0ff; padding:6px 10px; border-radius:8px; font-size:12px;">
+               value="rally-horizon-3d.onrender.com" style="flex:1; background:#0a0e14; color:#00f0ff; border:1px solid #00f0ff; padding:6px 10px; border-radius:8px; font-size:12px;">
       </div>
       <div class="quick-actions" style="margin-bottom:15px;">
         <button class="res-btn primary" id="mp-btn-create">СОЗДАТЬ КОМНАТУ</button>
@@ -1691,6 +1691,19 @@
       }
     });
 
+    // Сохраняем введенный адрес
+    document.getElementById('mp-server-url').addEventListener('blur', (e) => {
+      let raw = e.target.value.trim();
+      if (raw.startsWith('https://')) raw = 'wss://' + raw.slice(8);
+      else if (raw.startsWith('http://')) raw = 'ws://' + raw.slice(7);
+      else if (!raw.startsWith('ws://') && !raw.startsWith('wss://')) raw = 'wss://' + raw;
+      e.target.value = raw.replace(/\/+$/, '');
+      localStorage.setItem('mp_default_server', e.target.value);
+    });
+    // Восстанавливаем сохраненный адрес
+    const savedMpServer = localStorage.getItem('mp_default_server');
+    if (savedMpServer) document.getElementById('mp-server-url').value = savedMpServer;
+    
     document.getElementById('mp-btn-create').addEventListener('click', () => {
       const url = document.getElementById('mp-server-url').value.trim();
       if (!url) { alert('Введите адрес сервера'); return; }
@@ -1701,10 +1714,10 @@
     document.getElementById('mp-btn-join').addEventListener('click', () => {
       const url = document.getElementById('mp-server-url').value.trim();
       if (!url) { alert('Введите адрес сервера'); return; }
-      const code = prompt('Введите код комнаты:');
-      if (!code) return;
+      const code = prompt('Введите код комнаты (6 символов):');
+      if (!code || code.length !== 6) return;
       if (!mpClient) initMultiplayer();
-      setTimeout(() => { mpClient.connect(url); setTimeout(() => mpClient.joinRoom(code), 500); }, 100);
+      setTimeout(() => { mpClient.connect(url); setTimeout(() => mpClient.joinRoom(code.toUpperCase()), 500); }, 100);
     });
 
     document.getElementById('mp-btn-start').addEventListener('click', () => {
@@ -1717,9 +1730,16 @@
       }
     });
 
-    document.getElementById('title-btn-multiplayer').addEventListener('click', () => {
+    document.getElementById('title-btn-multiplayer').addEventListener('click', async () => {
       if (window.game) window.game.audio.init();
       document.getElementById('multiplayer-modal').classList.remove('hidden');
+      
+      // Фоновый прогрев сервера
+      const server = document.getElementById('mp-server-url').value.trim() || 'rally-horizon-3d.onrender.com';
+      try { 
+        await fetch('https://' + server + '/health', { mode: 'no-cors' });
+        console.log('[MP] Server warmed up:', server);
+      } catch(e) {}
     });
 
     document.getElementById('mp-btn-close').addEventListener('click', () => {

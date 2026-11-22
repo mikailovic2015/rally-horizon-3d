@@ -1,5 +1,16 @@
 // Мультиплеерный клиент — WebSocket с обработкой сообщений
 export class MultiplayerClient {
+  static DEFAULT_SERVER = 'rally-horizon-3d.onrender.com';
+  
+  static normalizeUrl(url) {
+    if (!url || url.trim() === '') return 'wss://' + MultiplayerClient.DEFAULT_SERVER;
+    let u = url.trim();
+    if (u.startsWith('https://')) u = 'wss://' + u.slice(8);
+    else if (u.startsWith('http://')) u = 'ws://' + u.slice(7);
+    else if (!u.startsWith('ws://') && !u.startsWith('wss://')) u = 'wss://' + u;
+    return u.replace(/\/+$/, '');
+  }
+  
   constructor() {
     this.ws = null;
     this.playerId = null;
@@ -72,6 +83,10 @@ export class MultiplayerClient {
   sendState(carData) {
     if (!this.ws || this.ws.readyState !== 1 || !this.isJoined) return;
     this.ws.send(JSON.stringify({ type: 'state', data: carData }));
+  }
+
+  getDefaultServer() {
+    return MultiplayerClient.DEFAULT_SERVER;
   }
 
   leave() {
