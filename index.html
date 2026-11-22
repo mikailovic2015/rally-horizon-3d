@@ -630,8 +630,8 @@
       position: absolute;
       bottom: 24px;
       left: 24px;
-      width: 240px;
-      height: 240px;
+      width: 300px;
+      height: 300px;
       pointer-events: auto;
       touch-action: none;
     }
@@ -656,8 +656,8 @@
 
     /* Large Wide Sport Brake Pedal (125px x 130px) */
     .pedal-brake {
-      width: 125px;
-      height: 130px;
+      width: 160px;
+      height: 170px;
       background: linear-gradient(180deg, #373f4c 0%, #171a22 100%);
       border: 3px solid #636f84;
       border-radius: 18px;
@@ -698,8 +698,8 @@
 
     /* Large Tall Sport Gas Pedal (96px x 185px) */
     .pedal-gas {
-      width: 96px;
-      height: 185px;
+      width: 130px;
+      height: 230px;
       background: linear-gradient(180deg, #424b5a 0%, #1a1e28 100%);
       border: 3px solid #738096;
       border-radius: 20px;
@@ -737,8 +737,8 @@
       pointer-events: auto;
     }
     .action-badge {
-      width: 94px;
-      height: 94px;
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
       background: rgba(16, 24, 38, 0.88);
       backdrop-filter: blur(10px);
@@ -753,8 +753,8 @@
       transition: all 0.1s;
     }
     .action-badge svg {
-      width: 58px;
-      height: 58px;
+      width: 74px;
+      height: 74px;
     }
     .action-badge.nitro-badge {
       border-color: rgba(0, 240, 255, 0.7);
@@ -777,20 +777,20 @@
 
     @media (max-width: 820px) {
       .steering-wheel-container {
-        width: 195px;
-        height: 195px;
-        bottom: 18px;
-        left: 18px;
+        width: 250px;
+        height: 250px;
+        bottom: 16px;
+        left: 14px;
       }
-      .pedal-gas { width: 80px; height: 160px; }
-      .pedal-brake { width: 105px; height: 110px; }
+      .pedal-gas { width: 108px; height: 200px; }
+      .pedal-brake { width: 135px; height: 145px; }
       .actions-group {
-        bottom: 185px;
-        right: 18px;
-        gap: 12px;
+        bottom: 235px;
+        right: 16px;
+        gap: 14px;
       }
-      .action-badge { width: 80px; height: 80px; }
-      .action-badge svg { width: 48px; height: 48px; }
+      .action-badge { width: 104px; height: 104px; }
+      .action-badge svg { width: 64px; height: 64px; }
       .garage-center {
         flex-direction: column;
         gap: 10px;
@@ -799,6 +799,119 @@
         width: 100%;
         max-width: 330px;
       }
+    }
+
+    .credits-pill {
+      background: rgba(255, 200, 40, 0.15);
+      border: 1.5px solid #ffcc33;
+      color: #ffd75e;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .car-price-row {
+      margin-top: 10px;
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffd75e;
+      text-align: center;
+    }
+    .car-price-row.owned { color: #00ff88; }
+    .skin-shop { margin-top: 10px; }
+    .skin-title {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #8fa0b8;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .skin-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .skin-btn {
+      min-width: 90px;
+      padding: 7px 10px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .skin-btn .dot {
+      width: 26px;
+      height: 14px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+    .skin-btn.active { border-color: #00f0ff; box-shadow: 0 0 14px rgba(0,240,255,0.7); }
+    .skin-btn.locked { opacity: 0.85; border-color: #ffcc33; }
+    .buy-btn {
+      background: linear-gradient(90deg, #ffaa00, #ff6600);
+      border: none;
+      color: #201300;
+      font-size: 17px;
+      font-weight: 900;
+      padding: 14px 30px;
+      border-radius: 35px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255, 170, 0, 0.8);
+    }
+    .buy-btn.hidden { display: none; }
+    .start-btn.hidden { display: none; }
+    .testdrive-btn {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1.5px solid #00f0ff;
+      color: #00f0ff;
+      font-size: 14px;
+      font-weight: 900;
+      padding: 14px 22px;
+      border-radius: 35px;
+      cursor: pointer;
+    }
+    .arrows-group {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      display: flex;
+      gap: 20px;
+      pointer-events: auto;
+    }
+    .arrows-group.hidden { display: none; }
+    .steering-wheel-container.hidden { display: none; }
+    .arrow-btn {
+      width: 130px;
+      height: 150px;
+      border-radius: 26px;
+      background: rgba(16, 24, 38, 0.88);
+      border: 3px solid rgba(0, 240, 255, 0.6);
+      color: #00f0ff;
+      font-size: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+    }
+    .arrow-btn.pressed {
+      background: rgba(0, 240, 255, 0.4);
+      transform: scale(0.94);
+    }
+    #hud-credits {
+      color: #ffd75e;
+      font-weight: 900;
     }
   </style>
 
@@ -860,7 +973,10 @@
   <div id="garage-overlay" class="hidden">
     <div class="garage-header">
       <div class="game-logo-sm">Rally Horizon 3D</div>
-      <div class="badge">FESTIVAL GARAGE</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="credits-pill">🪙 <span id="garage-credits">1 500 CR</span></div>
+        <div class="badge">FESTIVAL GARAGE</div>
+      </div>
     </div>
 
     <div class="garage-center">
@@ -892,6 +1008,11 @@
           <span>ВНЕДОРОЖЬЕ</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-offroad" style="width: 45%;"></div></div>
         </div>
+        <div class="car-price-row" id="car-price-row">Бесплатная стартовая машина</div>
+        <div class="skin-shop">
+          <div class="skin-title">СКИНЫ / ЛИВРЕИ</div>
+          <div class="skin-row" id="skin-buttons-container"></div>
+        </div>
       </div>
 
       <!-- Mode / Event Selector -->
@@ -905,6 +1026,8 @@
 
     <div class="garage-bottom">
       <button class="back-btn" id="btn-garage-back">‹ НА ГЛАВНУЮ</button>
+      <button class="testdrive-btn" id="btn-testdrive">🧪 ТЕСТ-ДРАЙВ</button>
+      <button class="buy-btn hidden" id="btn-buy-car">КУПИТЬ</button>
       <button class="start-btn" id="btn-start-race">В ЗАЕЗД (START)</button>
     </div>
   </div>
@@ -913,11 +1036,13 @@
   <div id="hud-overlay" class="hidden">
     <div class="hud-top-bar">
       <div class="hud-event-info">
+        <span id="hud-credits">1 500 CR</span>
         <span id="hud-progress">КРУГ 1/2 • КП 0/9</span>
         <span id="hud-timer">⏱️ 0.0с</span>
         <span id="hud-drift-score">SCORE: 0</span>
       </div>
       <div class="hud-buttons">
+        <button class="hud-icon-btn" id="hud-btn-controls">🎮 Руль</button>
         <button class="hud-icon-btn" id="hud-btn-cam">📷 Камера [C]</button>
         <button class="hud-icon-btn" id="hud-btn-reset">↺ Сброс [R]</button>
         <button class="hud-icon-btn" id="hud-btn-garage">Гараж [G]</button>
@@ -949,7 +1074,13 @@
 
   <!-- 4. LARGE VEHICLE CONTROLS -->
   <div class="touch-controls hidden" id="touch-layer">
-    <!-- Big 240px Interactive Racing Steering Wheel (Bottom-Left) -->
+    <!-- Стрелки влево/вправо (альтернатива рулю) -->
+    <div class="arrows-group hidden" id="arrows-group">
+      <div class="arrow-btn" id="arrow-left">◀</div>
+      <div class="arrow-btn" id="arrow-right">▶</div>
+    </div>
+
+    <!-- Big Interactive Racing Steering Wheel (Bottom-Left) -->
     <div class="steering-wheel-container" id="steering-wheel-box">
       <svg class="steering-wheel-svg" id="steering-wheel-visual" viewBox="0 0 200 200">
         <!-- Outer Leather/Carbon Grip Rim -->
@@ -1021,26 +1152,97 @@
   <!-- SCRIPT LOGIC -->
   <script type="module">
     import { CARS_DATA } from './src/cars.js';
-    import { EVENTS_CONFIG } from './src/events.js';
+    import { EVENTS_CONFIG, getCredits, spendCredits, buyCar, isCarOwned, getOwnedSkins, isSkinOwned, buySkin } from './src/events.js';
     import { RallyGame, initGame } from './src/main.js';
 
     let selectedCarIdx = 0;
     let selectedEventId = 'free';
 
+    let selectedSkins = {};
+    function currentSkin(car) {
+      return selectedSkins[car.id] || 'stock';
+    }
+    function refreshCredits() {
+      try {
+        const txt = getCredits().toLocaleString('ru-RU') + ' CR';
+        const g = document.getElementById('garage-credits');
+        if (g) g.textContent = txt;
+        const h = document.getElementById('hud-credits');
+        if (h) h.textContent = txt;
+      } catch (e) {}
+    }
+    function applyCurrentSkin() {
+      try {
+        const car = CARS_DATA[selectedCarIdx];
+        const skins = car.skins || [{ id: 'stock', color: car.color, accent: car.accentColor }];
+        const sk = skins.find(x => x.id === currentSkin(car)) || skins[0];
+        if (window.game && window.game.car3D && window.game.car3D.applySkin) {
+          window.game.car3D.applySkin({ id: sk.id, color: sk.color, accent: sk.accent });
+        }
+      } catch (e) {}
+    }
     function updateGarageUI() {
       const car = CARS_DATA[selectedCarIdx];
       document.getElementById('card-car-name').textContent = car.name;
       document.getElementById('card-car-type').textContent = `${car.type} • ${car.specs.speed}`;
       document.getElementById('card-car-desc').textContent = car.description;
 
-      document.getElementById('bar-speed').style.width = `${(car.topSpeed / 275) * 100}%`;
+      document.getElementById('bar-speed').style.width = `${(car.topSpeed / 295) * 100}%`;
       document.getElementById('bar-accel').style.width = `${car.acceleration}%`;
       document.getElementById('bar-handling').style.width = `${car.handling}%`;
       document.getElementById('bar-drift').style.width = `${car.driftFactor}%`;
       document.getElementById('bar-offroad').style.width = `${car.offroadGrip}%`;
 
+      const owned = isCarOwned(car.id);
+      const priceRow = document.getElementById('car-price-row');
+      const buyBtn = document.getElementById('btn-buy-car');
+      const startBtn = document.getElementById('btn-start-race');
+      if (owned) {
+        priceRow.textContent = car.price > 0 ? 'Куплена • в вашем гараже' : 'Бесплатная стартовая машина';
+        priceRow.className = 'car-price-row owned';
+        buyBtn.classList.add('hidden');
+        startBtn.classList.remove('hidden');
+      } else {
+        priceRow.textContent = `Цена: ${car.price.toLocaleString('ru-RU')} CR • у вас: ${getCredits().toLocaleString('ru-RU')} CR`;
+        priceRow.className = 'car-price-row';
+        buyBtn.classList.remove('hidden');
+        buyBtn.textContent = `КУПИТЬ ЗА ${car.price.toLocaleString('ru-RU')} CR`;
+        startBtn.classList.add('hidden');
+      }
+      refreshCredits();
+
+      // Скины
+      const skinBox = document.getElementById('skin-buttons-container');
+      skinBox.innerHTML = '';
+      const skins = car.skins || [{ id: 'stock', name: 'Заводской', color: car.color, accent: car.accentColor, price: 0 }];
+      skins.forEach(sk => {
+        const unlocked = isSkinOwned(car.id, sk.id);
+        const b = document.createElement('button');
+        b.className = 'skin-btn' + (currentSkin(car) === sk.id ? ' active' : '') + (unlocked ? '' : ' locked');
+        b.innerHTML = `<span class="dot" style="background:${sk.color};border-color:${sk.accent};"></span><span>${sk.name}${unlocked ? '' : ' • ' + sk.price + ' CR'}</span>`;
+        b.addEventListener('click', () => {
+          if (isSkinOwned(car.id, sk.id)) {
+            selectedSkins[car.id] = sk.id;
+            applyCurrentSkin();
+            updateGarageUI();
+          } else {
+            if (getCredits() >= sk.price) {
+              spendCredits(sk.price);
+              buySkin(car.id, sk.id);
+              selectedSkins[car.id] = sk.id;
+              applyCurrentSkin();
+              updateGarageUI();
+            } else {
+              alert('Не хватает кредитов! Катайтесь в событиях и собирайте CR.');
+            }
+          }
+        });
+        skinBox.appendChild(b);
+      });
+
       if (window.game) {
         window.game.loadCar(selectedCarIdx);
+        applyCurrentSkin();
       }
     }
 
@@ -1090,6 +1292,7 @@
       if (window.game) {
         window.game.audio.init();
         window.game.setGameState('garage');
+        updateGarageUI();
         renderEventsList();
       }
     });
@@ -1121,10 +1324,37 @@
       updateGarageUI();
     });
 
+    document.getElementById('btn-buy-car').addEventListener('click', () => {
+      const car = CARS_DATA[selectedCarIdx];
+      if (getCredits() >= car.price) {
+        spendCredits(car.price);
+        buyCar(car.id);
+        updateGarageUI();
+      } else {
+        alert('Не хватает кредитов! Проходите гонки и собирайте CR.');
+      }
+    });
+
+    document.getElementById('btn-testdrive').addEventListener('click', () => {
+      if (window.game) {
+        selectedEventId = 'testdrive';
+        window.game.loadCar(selectedCarIdx);
+        applyCurrentSkin();
+        window.game.eventManager.setEvent('testdrive');
+        window.game.startRace();
+      }
+    });
+
     document.getElementById('btn-start-race').addEventListener('click', () => {
       if (window.game) {
-        window.game.eventManager.setEvent(selectedEventId);
+        const car = CARS_DATA[selectedCarIdx];
+        if (!isCarOwned(car.id)) {
+          alert('Эта машина ещё не куплена. Купите её или нажмите ТЕСТ-ДРАЙВ.');
+          return;
+        }
+        window.game.eventManager.setEvent(selectedEventId === 'testdrive' ? 'free' : selectedEventId);
         window.game.startRace();
+        refreshCredits();
       }
     });
 
@@ -1169,12 +1399,12 @@
       let rad = Math.atan2(dx, -dy);
       let deg = rad * (180 / Math.PI);
 
-      deg = Math.max(-75, Math.min(75, deg));
+      deg = Math.max(-60, Math.min(60, deg));
       wheelAngle = deg;
       wheelSvg.style.transform = `rotate(${wheelAngle}deg)`;
 
       if (window.game) {
-        window.game.input.steer = wheelAngle / 75;
+        window.game.input.steer = wheelAngle / 60;
       }
     }
 
@@ -1228,6 +1458,20 @@
     bindPedal('pedal-brake', () => { if (window.game) window.game.input.brake = 1; }, () => { if (window.game) window.game.input.brake = 0; });
     bindPedal('btn-drift', () => { if (window.game) window.game.input.handbrake = true; }, () => { if (window.game) window.game.input.handbrake = false; });
     bindPedal('btn-nitro', () => { if (window.game) window.game.input.nitro = true; }, () => { if (window.game) window.game.input.nitro = false; });
+    bindPedal('arrow-left', () => { if (window.game) window.game.input.steer = -1; }, () => { if (window.game && window.game.input.steer < 0) window.game.input.steer = 0; });
+    bindPedal('arrow-right', () => { if (window.game) window.game.input.steer = 1; }, () => { if (window.game && window.game.input.steer > 0) window.game.input.steer = 0; });
+
+    const ctrlBtn = document.getElementById('hud-btn-controls');
+    if (ctrlBtn) {
+      ctrlBtn.addEventListener('click', () => {
+        if (!window.game) return;
+        const g = window.game;
+        g.controlMode = (g.controlMode === 'wheel') ? 'arrows' : 'wheel';
+        document.getElementById('steering-wheel-box').classList.toggle('hidden', g.controlMode !== 'wheel');
+        document.getElementById('arrows-group').classList.toggle('hidden', g.controlMode !== 'arrows');
+        ctrlBtn.textContent = g.controlMode === 'wheel' ? '🎮 Руль' : '⬅ Стрелки';
+      });
+    }
 
     // Initial UI load
     function initUI() {

@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { CIRCUIT_WAYPOINTS, RALLY_WAYPOINTS, SPEED_TRAPS } from './world.js';
+import { CIRCUIT_WAYPOINTS, RALLY_WAYPOINTS, SPEED_TRAPS, TESTDRIVE_SPAWN } from './world.js';
 
 export const EVENTS_CONFIG = [
   {
     id: 'free',
     name: 'Свободная езда (Free Roam)',
     tag: 'Исследование',
-    desc: 'Катайся по всей карте без ограничений, замеряй скорость на радарах, прыгай с трамплинов и ставь рекорды дрифта.',
+    desc: 'Катайся по всей карте без ограничений.',
     spawn: { x: 0, z: 175, rotY: Math.PI / 2 },
     laps: 0,
     checkpoints: []
@@ -15,31 +15,129 @@ export const EVENTS_CONFIG = [
     id: 'circuit',
     name: 'Horizon Grand Prix (Кольцо)',
     tag: 'Асфальт • 2 круга',
-    desc: 'Скоростная кольцевая гонка на 2 круга по асфальту. Пройди все контрольные точки на рекордное время.',
+    desc: 'Кольцевая гонка на 2 круга по асфальту.',
     spawn: { x: -10, z: 180, rotY: Math.PI / 2 },
     laps: 2,
+    rewardBase: 2000,
     checkpoints: CIRCUIT_WAYPOINTS
   },
   {
     id: 'rally',
     name: 'Rally Mountain Sprint (Спринт)',
     tag: 'Грунтовка • Точка-Точка',
-    desc: 'Грунтовый ралли-спринт по горной тропе через трамплины и шпильки до вершины горы.',
+    desc: 'Грунтовый ралли-спринт по горной тропе.',
     spawn: { x: 125, z: -210, rotY: -Math.PI / 2 },
     laps: 1,
+    rewardBase: 1500,
     checkpoints: RALLY_WAYPOINTS
   },
   {
     id: 'drift',
     name: 'Gymkhana Drift (60 сек)',
     tag: 'Дрифт-челлендж',
-    desc: 'За 60 секунд набери максимальное количество очков заноса. Не сбивай комбо!',
+    desc: 'За 60 секунд набери очки заноса!',
     spawn: { x: 0, z: 0, rotY: 0 },
     laps: 1,
     timeLimit: 60,
+    rewardBase: 800,
+    checkpoints: []
+  },
+  {
+    id: 'testdrive',
+    name: 'Полигон (Тест-Драйв)',
+    tag: 'Тест-Драйв',
+    desc: 'Испытай любую машину на закрытом полигоне.',
+    spawn: TESTDRIVE_SPAWN,
+    laps: 0,
     checkpoints: []
   }
 ];
+
+const CR_KEY = 'horizon_credits';
+const OWNED_CARS_KEY = 'horizon_owned_cars';
+const OWNED_SKINS_KEY = 'horizon_owned_skins';
+const DEFAULT_CREDITS = 1500;
+
+export function getCredits() {
+  try {
+    const val = localStorage.getItem(CR_KEY);
+    if (val === null || val === undefined) {
+      localStorage.setItem(CR_KEY, DEFAULT_CREDITS.toString());
+      return DEFAULT_CREDITS;
+    }
+    return parseInt(val, 10) || 0;
+  } catch (e) {
+    return DEFAULT_CREDITS;
+  }
+}
+
+export function addCredits(amount) {
+  const cur = getCredits();
+  const next = cur + amount;
+  try { localStorage.setItem(CR_KEY, next.toString()); } catch (e) {}
+  return next;
+}
+
+export function spendCredits(amount) {
+  const cur = getCredits();
+  if (cur < amount) return false;
+  try { localStorage.setItem(CR_KEY, (cur - amount).toString()); } catch (e) {}
+  return true;
+}
+
+export function getOwnedCars() {
+  try {
+    const val = localStorage.getItem(OWNED_CARS_KEY);
+    if (!val) {
+      const def = ['rally_wrc'];
+      localStorage.setItem(OWNED_CARS_KEY, JSON.stringify(def));
+      return def;
+    }
+    return JSON.parse(val);
+  } catch (e) {
+    return ['rally_wrc'];
+  }
+}
+
+export function isCarOwned(carId) {
+  return getOwnedCars().includes(carId);
+}
+
+export function buyCar(carId) {
+  const owned = getOwnedCars();
+  if (owned.includes(carId)) return true;
+  owned.push(carId);
+  try { localStorage.setItem(OWNED_CARS_KEY, JSON.stringify(owned)); } catch (e) {}
+  return true;
+}
+
+export function getOwnedSkins() {
+  try {
+    const val = localStorage.getItem(OWNED_SKINS_KEY);
+    if (!val) {
+      const def = {};
+      localStorage.setItem(OWNED_SKINS_KEY, JSON.stringify(def));
+      return def;
+    }
+    return JSON.parse(val);
+  } catch (e) {
+    return {};
+  }
+}
+
+export function isSkinOwned(carId, skinId) {
+  if (skinId === 'stock') return true;
+  const skins = getOwnedSkins();
+  return skins[carId] && skins[carId].includes(skinId);
+}
+
+export function buySkin(carId, skinId) {
+  const skins = getOwnedSkins();
+  if (!skins[carId]) skins[carId] = [];
+  if (!skins[carId].includes(skinId)) skins[carId].push(skinId);
+  try { localStorage.setItem(OWNED_SKINS_KEY, JSON.stringify(skins)); } catch (e) {}
+  return true;
+}
 
 export class EventManager {
   constructor(scene, onNotification, onAudioTrigger, onCountdown, onFinishModal) {
@@ -50,7 +148,7 @@ export class EventManager {
     this.onFinishModal = onFinishModal || (() => {});
 
     this.currentEvent = EVENTS_CONFIG[0];
-    this.state = 'idle'; // 'idle', 'countdown', 'running', 'finished'
+    this.state = 'idle';
     this.time = 0;
     this.countdownTimer = 0;
     this.countdownStep = 3;
@@ -58,7 +156,6 @@ export class EventManager {
     this.cpIndex = 0;
     this.lastSplitTime = 0;
 
-    // Scoring & Stunts
     this.driftScore = 0;
     this.driftCombo = 1.0;
     this.currentDriftPoints = 0;
@@ -90,14 +187,12 @@ export class EventManager {
   buildCheckpointMarkers() {
     this.markerGroup = new THREE.Group();
 
-    // Checkpoint arch torus
     const ringGeo = new THREE.TorusGeometry(6.5, 0.45, 12, 32);
     ringGeo.rotateY(Math.PI / 2);
     this.markerMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true });
     this.markerMesh = new THREE.Mesh(ringGeo, this.markerMat);
     this.markerMesh.position.y = 5;
 
-    // Laser column beam
     const colGeo = new THREE.CylinderGeometry(0.25, 0.25, 30, 8);
     const colMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.6 });
     const colMesh = new THREE.Mesh(colGeo, colMat);
@@ -128,7 +223,6 @@ export class EventManager {
   }
 
   start() {
-    // If racing mode (circuit/rally), start with 3-second countdown
     if (this.currentEvent.id === 'circuit' || this.currentEvent.id === 'rally') {
       this.state = 'countdown';
       this.countdownTimer = 3.0;
@@ -147,15 +241,15 @@ export class EventManager {
       this.cpIndex = 0;
       this.driftScore = 0;
       this.updateMarkerPosition();
-      this.onNotification(`Старт: ${this.currentEvent.name}!`, 'info');
+      this.onNotification('\u0421\u0442\u0430\u0440\u0442: ' + this.currentEvent.name + '!', 'info');
     }
   }
 
   updateMarkerPosition() {
     const cps = this.currentEvent.checkpoints;
-    if (cps && cps.length > 0 && (this.state === 'running' || this.state === 'countdown')) {
+    if (cps && cps.length > 0 && (this.state === 'running' || this.state === 'countdown') && this.cpIndex < cps.length) {
       const target = cps[this.cpIndex];
-      this.markerGroup.position.copy(target);
+      this.markerGroup.position.set(target.x, 0, target.z);
       this.markerGroup.visible = true;
     } else {
       this.markerGroup.visible = false;
@@ -163,12 +257,10 @@ export class EventManager {
   }
 
   update(carPos, speedKmh, isDrifting, isAirborne, dt) {
-    // Checkpoint gate rotation
     if (this.markerGroup.visible) {
       this.markerMesh.rotation.y += dt * 2.2;
     }
 
-    // Handle Countdown State
     if (this.state === 'countdown') {
       this.countdownTimer -= dt;
       const currentInt = Math.ceil(this.countdownTimer);
@@ -185,7 +277,7 @@ export class EventManager {
       return;
     }
 
-    // 1. Airtime and Jump calculation
+    // 1. Jump detection
     if (isAirborne) {
       if (!this.jumpStartPos) {
         this.jumpStartPos = carPos.clone();
@@ -194,40 +286,44 @@ export class EventManager {
       const dist = Math.round(this.jumpStartPos.distanceTo(carPos));
       this.jumpStartPos = null;
       if (dist > 8) {
-        let stars = '⭐';
-        if (dist >= 35) stars = '⭐⭐⭐';
-        else if (dist >= 20) stars = '⭐⭐';
-        const bonus = dist * 20;
+        let stars = '\u2B50';
+        let bonus = dist * 15;
+        if (dist >= 35) { stars = '\u2B50\u2B50\u2B50'; bonus = dist * 25; }
+        else if (dist >= 20) { stars = '\u2B50\u2B50'; bonus = dist * 20; }
         this.driftScore += bonus;
-        this.onNotification(`ПРЫЖОК: ${dist}м! ${stars} +${bonus} PTS`, 'stunt');
+        addCredits(Math.round(bonus * 0.3));
+        this.onNotification('\u041F\u0420\u042B\u0416\u041E\u041A: ' + dist + '\u043C! ' + stars + ' +' + bonus + ' PTS', 'stunt');
         this.onAudioTrigger('checkpoint');
       }
     }
 
-    // 2. Drift points calculation
+    // 2. Drift scoring
     if (isDrifting && speedKmh > 35) {
       this.currentDriftPoints += (speedKmh * 1.6 * dt);
       this.driftCombo = Math.min(4.0, this.driftCombo + dt * 0.45);
     } else if (this.currentDriftPoints > 0) {
       const awarded = Math.round(this.currentDriftPoints * this.driftCombo);
       this.driftScore += awarded;
+      addCredits(Math.round(awarded * 0.1));
       if (awarded > 300) {
-        this.onNotification(`ДРИФТ x${this.driftCombo.toFixed(1)}: +${awarded} PTS`, 'drift');
+        this.onNotification('\u0414\u0420\u0418\u0424\u0422 x' + this.driftCombo.toFixed(1) + ': +' + awarded + ' PTS', 'drift');
       }
       this.currentDriftPoints = 0;
       this.driftCombo = 1.0;
     }
 
-    // 3. Speed Traps detection on map
+    // 3. Speed traps
     for (let st of SPEED_TRAPS) {
       const dist = Math.hypot(carPos.x - st.x, carPos.z - st.z);
       if (dist < 12) {
         if (!st.cooldown) {
           st.cooldown = true;
-          let stars = '⭐';
-          if (speedKmh >= st.targetKmh + 30) stars = '⭐⭐⭐';
-          else if (speedKmh >= st.targetKmh) stars = '⭐⭐';
-          this.onNotification(`РАДАР СКОРОСТИ: ${Math.round(speedKmh)} КМ/Ч! ${stars}`, 'stunt');
+          let stars = '\u2B50';
+          let reward = 200;
+          if (speedKmh >= st.targetKmh + 30) { stars = '\u2B50\u2B50\u2B50'; reward = 800; }
+          else if (speedKmh >= st.targetKmh) { stars = '\u2B50\u2B50'; reward = 450; }
+          addCredits(reward);
+          this.onNotification('\u0420\u0410\u0414\u0410\u0420: ' + Math.round(speedKmh) + ' \u041A\u041C/\u0427! ' + stars + ' +' + reward + ' CR', 'stunt');
           this.onAudioTrigger('checkpoint');
           setTimeout(() => { st.cooldown = false; }, 8000);
         }
@@ -235,19 +331,17 @@ export class EventManager {
     }
 
     if (this.state !== 'running') return;
-
     this.time += dt;
 
-    // Check drift challenge timer
     if (this.currentEvent.id === 'drift') {
-      const timeLeft = Math.max(0, this.currentEvent.timeLimit - this.time);
-      if (timeLeft <= 0) {
+      if (this.currentEvent.timeLimit - this.time <= 0) {
         this.finish();
       }
       return;
     }
 
-    // Check checkpoints in races
+    if (this.currentEvent.id === 'free' || this.currentEvent.id === 'testdrive') return;
+
     const cps = this.currentEvent.checkpoints;
     if (cps && cps.length > 0) {
       const target = cps[this.cpIndex];
@@ -255,19 +349,21 @@ export class EventManager {
 
       if (distToCp < 15) {
         this.cpIndex++;
+        const cpReward = 150;
+        addCredits(cpReward);
         this.onAudioTrigger('checkpoint');
 
         if (this.cpIndex >= cps.length) {
           if (this.currentEvent.laps > this.lap) {
             this.lap++;
             this.cpIndex = 0;
-            this.onNotification(`КРУГ ${this.lap}/${this.currentEvent.laps}!`, 'info');
+            this.onNotification('\u041A\u0420\u0423\u0413 ' + this.lap + '/' + this.currentEvent.laps + '! +' + cpReward + ' CR', 'info');
           } else {
             this.finish();
             return;
           }
         } else {
-          this.onNotification(`Чекпоинт ${this.cpIndex}/${cps.length}`, 'info');
+          this.onNotification('\u041A\u041F ' + this.cpIndex + '/' + cps.length + ' +' + cpReward + ' CR', 'info');
         }
         this.updateMarkerPosition();
       }
@@ -282,7 +378,8 @@ export class EventManager {
     let resultTitle = '';
     let resultScore = '';
     let isRecord = false;
-    let stars = '⭐⭐⭐';
+    let stars = '\u2B50\u2B50\u2B50';
+    let reward = 0;
     const evId = this.currentEvent.id;
 
     if (evId === 'drift') {
@@ -292,9 +389,10 @@ export class EventManager {
         this.saveRecord('drift', total);
         isRecord = true;
       }
-      resultTitle = 'ДРИФТ-ЧЕЛЛЕНДЖ ЗАВЕРШЁН';
-      resultScore = `${total} PTS (Рекорд: ${Math.max(total, prev)})`;
-      stars = total > 20000 ? '⭐⭐⭐' : (total > 8000 ? '⭐⭐' : '⭐');
+      reward = (this.currentEvent.rewardBase || 800) + Math.round(total * 0.08);
+      resultTitle = '\u0414\u0420\u0418\u0424\u0422-\u0427\u0415\u041B\u041B\u0415\u041D\u0416 \u0417\u0410\u0412\u0415\u0420\u0428\u0401\u041D';
+      resultScore = total + ' PTS (\u0420\u0435\u043A\u043E\u0440\u0434: ' + Math.max(total, prev) + ')';
+      stars = total > 20000 ? '\u2B50\u2B50\u2B50' : (total > 8000 ? '\u2B50\u2B50' : '\u2B50');
     } else {
       const finalTime = this.time.toFixed(2);
       const prev = this.getBestRecord(evId);
@@ -302,16 +400,22 @@ export class EventManager {
         this.saveRecord(evId, finalTime);
         isRecord = true;
       }
-      resultTitle = 'ГОНКА ЗАВЕРШЕНА';
-      resultScore = `Время: ${finalTime}с (Рекорд: ${prev ? Math.min(parseFloat(finalTime), parseFloat(prev)) + 'с' : finalTime + 'с'})`;
+      reward = this.currentEvent.rewardBase || 1000;
+      if (isRecord) reward = Math.round(reward * 1.5);
+      resultTitle = '\u0413\u041E\u041D\u041A\u0410 \u0417\u0410\u0412\u0415\u0420\u0428\u0415\u041D\u0410';
+      const bestTime = prev ? Math.min(parseFloat(finalTime), parseFloat(prev)) + '\u0441' : finalTime + '\u0441';
+      resultScore = '\u0412\u0440\u0435\u043C\u044F: ' + finalTime + '\u0441 (\u0420\u0435\u043A\u043E\u0440\u0434: ' + bestTime + ')';
     }
+
+    addCredits(reward);
 
     this.onFinishModal({
       title: resultTitle,
       scoreText: resultScore,
       isRecord,
       stars,
-      eventName: this.currentEvent.name
+      eventName: this.currentEvent.name,
+      reward
     });
   }
 }

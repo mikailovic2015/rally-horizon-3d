@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CARS_DATA, buildCar3D } from './cars.js';
 import { GameWorld } from './world.js';
-import { EventManager, EVENTS_CONFIG } from './events.js';
+import { EventManager, EVENTS_CONFIG, getCredits } from './events.js';
 
 // --- PROCEDURAL WEB AUDIO API SYNTHESIZER ---
 class AudioEngine {
@@ -175,6 +175,9 @@ export class RallyGame {
     this.isAirborne = false;
     this.nitro = 100;
     this.nitroActive = false;
+    this.controlMode = 'wheel'; // 'wheel' или 'arrows'
+    this.lastCrashTime = 0;
+    this.crashCooldown = 1.2;
     this.gear = 1;
     this.rpm = 0.2;
 
@@ -372,9 +375,14 @@ export class RallyGame {
   }
 
   respawnCar() {
-    const sp = this.eventManager.currentEvent.spawn;
+    const ev = this.eventManager.currentEvent;
+    if (this.world && this.world.setMap) {
+      this.world.setMap(ev.id === 'testdrive' ? 'testdrive' : 'festival');
+    }
+    const sp = ev.spawn;
     this.carPos.set(sp.x, this.world.getHeight(sp.x, sp.z), sp.z);
     this.carHeading = sp.rotY;
+    if (this.car3D && this.car3D.repair) this.car3D.repair();
     this.carSpeed = 0;
     this.carVy = 0;
     this.carPitch = 0;
@@ -484,11 +492,16 @@ export class RallyGame {
       this.carSpeed *= Math.max(0, 1 - dt * 1.5);
     }
 
-    // Steering & Turn Physics
+    // Плавный руль: мёртвая зона + прогрессивная кривая + демпфирование от скорости
     const speedKmh = Math.abs(this.carSpeed * 3.6);
-    const steerAgility = Math.max(0.35, 1.0 - (speedKmh / 270) * 0.55);
-    const targetSteer = this.input.steer * 0.55 * steerAgility;
-    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * 12);
+    const rawSteer = this.input.steer || 0;
+    const deadSteer = Math.abs(rawSteer) < 0.06 ? 0 : rawSteer;
+    const curvedSteer = Math.sign(deadSteer) * Math.pow(Math.abs(deadSteer), 1.35);
+    const handlingFactor = 0.55 + ((carCfg.handling || 80) / 100) * 0.35;
+    const speedDamp = Math.max(0.38, 1.0 - (speedKmh / 300));
+    const reversing = this.carSpeed < -0.5 ? -1 : 1;
+    const targetSteer = curvedSteer * 0.42 * handlingFactor * speedDamp * reversing;
+    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * 7);
 
     // Drift physics
     const driftTendency = (carCfg.driftFactor / 100);
@@ -513,12 +526,19 @@ export class RallyGame {
     this.carPos.x += forwardX * this.carSpeed * dt;
     this.carPos.z += forwardZ * this.carSpeed * dt;
 
-    // Suspension & Jumps
+    // Подвеска и трамплины: едем по склону, взлетаем только с губы и на скорости
     const targetY = groundH;
-    if (this.carPos.y > targetY + 0.1) {
+    const rampInfo = (this.world.getRampInfo ? this.world.getRampInfo(this.carPos.x, this.carPos.z) : null);
+    const fwdSpeed = this.carSpeed;
+    if (this.carPos.y > targetY + 0.08) {
       this.isAirborne = true;
-      this.carVy -= 26 * dt;
+      this.carVy -= 22 * dt;
       this.carPos.y += this.carVy * dt;
+      if (this.carPos.y <= targetY) {
+        this.carPos.y = targetY;
+        this.isAirborne = false;
+        this.carVy = 0;
+      }
       this.carPitch += (0 - this.carPitch) * dt * 1.5;
     } else {
       if (this.isAirborne) {
@@ -526,13 +546,17 @@ export class RallyGame {
         this.carVy = 0;
       }
       this.carPos.y = targetY;
-
-      if (surf === 'ramp' && this.carSpeed > 15) {
-        this.carVy = Math.max(6, this.carSpeed * 0.35);
-        this.carPos.y += 0.2;
+      // Взлёт только на губе трамплина и при скорости больше 43 км/ч
+      if (rampInfo && rampInfo.onRamp && rampInfo.atLip && fwdSpeed > 12) {
+        this.carVy = Math.min(9, Math.max(3.5, fwdSpeed * 0.20));
+        this.carPos.y += 0.15;
         this.isAirborne = true;
+      } else if (rampInfo && rampInfo.onRamp) {
+        // На склоне просто едем вверх, нос приподнят
+        this.carPitch = -rampInfo.inclineAngle * 0.45;
+      } else {
+        this.carPitch = (activeThrottle - this.input.brake) * 0.04;
       }
-      this.carPitch = (activeThrottle - this.input.brake) * 0.04;
     }
 
     this.carRoll = -this.steerAngle * (this.carSpeed / topSpeedMs) * 0.15;
@@ -544,8 +568,31 @@ export class RallyGame {
     this.audio.updateEngine(this.rpm, speedKmh, activeThrottle > 0 || this.nitroActive);
     this.audio.updateDrift(this.isDrifting, speedKmh);
 
+    // Кусты разлетаются, деревья бьют кузов
+    if (this.world.checkBushCollision) {
+      const bushHit = this.world.checkBushCollision(this.carPos, speedKmh);
+      if (bushHit) {
+        this.audio.playCheckpoint();
+      }
+    }
+    if (this.world.checkTreeCollision) {
+      const now = this.clock.getElapsedTime();
+      const treeHit = this.world.checkTreeCollision(this.carPos, 1.6);
+      if (treeHit && (now - this.lastCrashTime) > this.crashCooldown) {
+        this.lastCrashTime = now;
+        // Выталкиваем машину из дерева и гасим скорость
+        this.carPos.x = treeHit.treeX + treeHit.nx * (treeHit.overlap + 1.7);
+        this.carPos.z = treeHit.treeZ + treeHit.nz * (treeHit.overlap + 1.7);
+        this.carSpeed *= 0.35;
+        if (this.car3D && this.car3D.applyDent) this.car3D.applyDent();
+        this.audio.playBeep(false);
+        this.showNotification('Вмятина кузова! Осторожно — дерево!', 'drift');
+      }
+    }
+
     this.updateCarTransform();
     this.updateParticles(dt, surf);
+    if (this.world.updateProps) this.world.updateProps(dt);
     this.eventManager.update(this.carPos, speedKmh, this.isDrifting, this.isAirborne, dt);
   }
 
@@ -717,6 +764,14 @@ export class RallyGame {
     if (gearEl) gearEl.textContent = this.carSpeed < -0.5 ? 'R' : this.gear;
     if (rpmBar) rpmBar.style.width = `${Math.min(100, this.rpm * 100)}%`;
     if (nitroBar) nitroBar.style.width = `${this.nitro}%`;
+    const creditsEl = document.getElementById('hud-credits');
+    if (creditsEl) {
+      try { creditsEl.textContent = getCredits().toLocaleString('ru-RU') + ' CR'; } catch (e) {}
+    }
+    const garageCredits = document.getElementById('garage-credits');
+    if (garageCredits) {
+      try { garageCredits.textContent = getCredits().toLocaleString('ru-RU') + ' CR'; } catch (e) {}
+    }
 
     const em = this.eventManager;
     if (driftScoreEl) {
@@ -751,7 +806,7 @@ export class RallyGame {
     // Sync visual steering wheel rotation if steering via keyboard
     const visualWheel = document.getElementById('steering-wheel-visual');
     if (visualWheel) {
-      const angleDeg = (this.steerAngle / 0.55) * 75;
+      const angleDeg = (this.steerAngle / 0.42) * 75;
       visualWheel.style.transform = `rotate(${angleDeg}deg)`;
     }
 
