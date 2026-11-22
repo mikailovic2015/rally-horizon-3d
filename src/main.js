@@ -21,7 +21,7 @@ class AudioEngine {
       this.masterGain.gain.value = 0.55;
       this.masterGain.connect(this.ctx.destination);
 
-      // 1. Realistic Engine Sound (Dual Oscillators + Harmonic Filter)
+      // 1. Engine Sound (Dual Oscillators + Harmonic Filter)
       this.engineOsc1 = this.ctx.createOscillator();
       this.engineOsc1.type = 'sawtooth';
 
@@ -98,6 +98,20 @@ class AudioEngine {
     }
   }
 
+  playBeep(isHigh = false) {
+    if (!this.initialized || this.muted) return;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = isHigh ? 880 : 440;
+    g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + (isHigh ? 0.4 : 0.2));
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + (isHigh ? 0.4 : 0.2));
+  }
+
   playCheckpoint() {
     if (!this.initialized || this.muted) return;
     const osc = this.ctx.createOscillator();
@@ -145,15 +159,15 @@ export class RallyGame {
   constructor() {
     this.audio = new AudioEngine();
     this.currentCarIndex = 0;
-    this.cameraMode = 0; // 0: Dynamic Chase, 1: Far Chase, 2: Bumper Cam
-    this.gameState = 'title'; // 'title', 'garage', 'racing'
+    this.cameraMode = 0;
+    this.gameState = 'title';
 
     // Physical state
     this.carPos = new THREE.Vector3(0, 0, 180);
     this.carHeading = Math.PI / 2;
     this.carPitch = 0;
     this.carRoll = 0;
-    this.carSpeed = 0; // m/s
+    this.carSpeed = 0;
     this.carVy = 0;
     this.steerAngle = 0;
     this.driftAngle = 0;
@@ -201,7 +215,6 @@ export class RallyGame {
     this.renderer.shadowMap.type = THREE.BasicShadowMap;
     this.container.appendChild(this.renderer.domElement);
 
-    // Dynamic warm sunlight
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x446633, 0.75);
     this.scene.add(hemiLight);
 
@@ -237,6 +250,28 @@ export class RallyGame {
       (sound) => {
         if (sound === 'checkpoint') this.audio.playCheckpoint();
         if (sound === 'finish') this.audio.playFinish();
+        if (sound === 'beep_low') this.audio.playBeep(false);
+        if (sound === 'beep_high') this.audio.playBeep(true);
+      },
+      (count) => {
+        const cd = document.getElementById('countdown-overlay');
+        if (!cd) return;
+        if (count === null) {
+          cd.style.display = 'none';
+        } else {
+          cd.textContent = count;
+          cd.style.display = 'flex';
+        }
+      },
+      (modalData) => {
+        const modal = document.getElementById('results-modal');
+        if (!modal) return;
+        document.getElementById('res-title').textContent = modalData.title;
+        document.getElementById('res-event').textContent = modalData.eventName;
+        document.getElementById('res-score').textContent = modalData.scoreText;
+        document.getElementById('res-stars').textContent = modalData.stars;
+        document.getElementById('res-record-badge').style.display = modalData.isRecord ? 'inline-block' : 'none';
+        modal.classList.remove('hidden');
       }
     );
   }
@@ -269,7 +304,6 @@ export class RallyGame {
     this.particles = new THREE.Points(pGeo, pMat);
     this.scene.add(this.particles);
 
-    // Nitro exhaust flame spheres
     const flameGeo = new THREE.SphereGeometry(0.18, 6, 6);
     const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
     this.flameLeft = new THREE.Mesh(flameGeo, flameMat);
@@ -364,11 +398,13 @@ export class RallyGame {
     const garageOverlay = document.getElementById('garage-overlay');
     const hudOverlay = document.getElementById('hud-overlay');
     const touchLayer = document.getElementById('touch-layer');
+    const resultsModal = document.getElementById('results-modal');
 
     if (titleOverlay) titleOverlay.classList.toggle('hidden', state !== 'title');
     if (garageOverlay) garageOverlay.classList.toggle('hidden', state !== 'garage');
     if (hudOverlay) hudOverlay.classList.toggle('hidden', state !== 'racing');
     if (touchLayer) touchLayer.classList.toggle('hidden', state !== 'racing');
+    if (resultsModal) resultsModal.classList.add('hidden');
 
     if (state === 'racing') {
       this.respawnCar();
@@ -392,6 +428,10 @@ export class RallyGame {
   updatePhysics(dt) {
     if (this.gameState !== 'racing') return;
 
+    // Freeze throttle during 3..2..1 countdown
+    const isCountingDown = this.eventManager.state === 'countdown';
+    const activeThrottle = isCountingDown ? 0 : this.input.throttle;
+
     const carCfg = CARS_DATA[this.currentCarIndex];
     const surf = this.world.getSurfaceType(this.carPos.x, this.carPos.z);
     const groundH = this.world.getHeight(this.carPos.x, this.carPos.z);
@@ -410,7 +450,7 @@ export class RallyGame {
     }
 
     // Nitro handling
-    const wantsNitro = this.input.nitro && this.nitro > 5;
+    const wantsNitro = this.input.nitro && this.nitro > 5 && !isCountingDown;
     if (wantsNitro) {
       this.nitroActive = true;
       this.nitro = Math.max(0, this.nitro - dt * 25);
@@ -421,15 +461,14 @@ export class RallyGame {
       }
     }
 
-    // Forward drive force
     const topSpeedMs = (carCfg.topSpeed / 3.6) * surfaceMaxSpeed * (this.nitroActive ? 1.25 : 1.0);
     const accelPower = (carCfg.acceleration / 100) * 19 * (this.nitroActive ? 1.5 : 1.0);
 
-    if (this.input.throttle > 0) {
+    if (activeThrottle > 0) {
       if (this.carSpeed < 0) {
-        this.carSpeed += 30 * dt; // Braking from reverse
+        this.carSpeed += 30 * dt;
       } else if (this.carSpeed < topSpeedMs) {
-        this.carSpeed += accelPower * dt * this.input.throttle;
+        this.carSpeed += accelPower * dt * activeThrottle;
       }
     } else if (this.input.brake > 0) {
       if (this.carSpeed > 1) {
@@ -441,12 +480,11 @@ export class RallyGame {
       this.carSpeed *= Math.max(0, 1 - dt * 0.8);
     }
 
-    // Handbrake
     if (this.input.handbrake) {
       this.carSpeed *= Math.max(0, 1 - dt * 1.5);
     }
 
-    // Steering & Realistic Turn Physics
+    // Steering & Turn Physics
     const speedKmh = Math.abs(this.carSpeed * 3.6);
     const steerAgility = Math.max(0.35, 1.0 - (speedKmh / 270) * 0.55);
     const targetSteer = this.input.steer * 0.55 * steerAgility;
@@ -463,11 +501,11 @@ export class RallyGame {
       this.driftAngle *= Math.max(0, 1 - dt * 5);
     }
 
-    // Update heading (RIGHT STEER turns the car to the RIGHT!)
+    // Update heading
     const turnRate = (this.carSpeed / 2.5) * Math.tan(this.steerAngle);
     this.carHeading -= turnRate * dt * (this.isDrifting ? 1.3 : 1.0);
 
-    // Velocity vector with drift slip
+    // Velocity vector
     const moveAngle = this.carHeading - this.driftAngle;
     const forwardX = Math.sin(moveAngle);
     const forwardZ = Math.cos(moveAngle);
@@ -475,11 +513,11 @@ export class RallyGame {
     this.carPos.x += forwardX * this.carSpeed * dt;
     this.carPos.z += forwardZ * this.carSpeed * dt;
 
-    // Suspension / Vertical Elevation & Jumps
+    // Suspension & Jumps
     const targetY = groundH;
     if (this.carPos.y > targetY + 0.1) {
       this.isAirborne = true;
-      this.carVy -= 26 * dt; // Gravity
+      this.carVy -= 26 * dt;
       this.carPos.y += this.carVy * dt;
       this.carPitch += (0 - this.carPitch) * dt * 1.5;
     } else {
@@ -494,17 +532,16 @@ export class RallyGame {
         this.carPos.y += 0.2;
         this.isAirborne = true;
       }
-      this.carPitch = (this.input.throttle - this.input.brake) * 0.04;
+      this.carPitch = (activeThrottle - this.input.brake) * 0.04;
     }
 
     this.carRoll = -this.steerAngle * (this.carSpeed / topSpeedMs) * 0.15;
 
-    // Gear & RPM calculations
     const speedRatio = Math.min(1, speedKmh / carCfg.topSpeed);
     this.gear = Math.max(1, Math.min(6, Math.floor(speedRatio * 5) + 1));
     this.rpm = 0.2 + ((speedRatio * 5) % 1) * 0.8;
 
-    this.audio.updateEngine(this.rpm, speedKmh, this.input.throttle > 0 || this.nitroActive);
+    this.audio.updateEngine(this.rpm, speedKmh, activeThrottle > 0 || this.nitroActive);
     this.audio.updateDrift(this.isDrifting, speedKmh);
 
     this.updateCarTransform();
@@ -521,7 +558,6 @@ export class RallyGame {
     this.car3D.chassisTilt.rotation.x = this.carPitch;
     this.car3D.chassisTilt.rotation.z = this.carRoll;
 
-    // Front wheels turn in sync with steering
     for (let p of this.car3D.steerPivots) {
       p.rotation.y = -this.steerAngle;
     }
@@ -585,7 +621,6 @@ export class RallyGame {
 
   updateCamera(dt) {
     if (this.gameState === 'title') {
-      // Cinematic slow 3D orbit around hero car on title screen
       const time = this.clock.getElapsedTime();
       const radius = 6.2;
       this.camera.position.x = this.carPos.x + Math.sin(time * 0.35) * radius;
@@ -596,7 +631,6 @@ export class RallyGame {
     }
 
     if (this.gameState === 'garage') {
-      // Turntable showcase rotation in garage
       const time = this.clock.getElapsedTime();
       const radius = 6.8;
       this.camera.position.x = this.carPos.x + Math.sin(time * 0.5) * radius;
@@ -613,7 +647,6 @@ export class RallyGame {
     this.camera.updateProjectionMatrix();
 
     if (this.cameraMode === 0) {
-      // Dynamic Chase
       const dist = 7.5 + (speedKmh / 270) * 3.5;
       const height = 2.4 + (speedKmh / 270) * 0.6;
       const targetCamPos = new THREE.Vector3(
@@ -630,7 +663,6 @@ export class RallyGame {
       this.camera.lookAt(lookTarget);
 
     } else if (this.cameraMode === 1) {
-      // Far Chase
       const targetCamPos = new THREE.Vector3(
         this.carPos.x - Math.sin(this.carHeading) * 14,
         this.carPos.y + 5.5,
@@ -640,7 +672,6 @@ export class RallyGame {
       this.camera.lookAt(this.carPos.x, this.carPos.y + 1.2, this.carPos.z);
 
     } else {
-      // Bumper / Hood Cam
       this.camera.position.set(
         this.carPos.x + Math.sin(this.carHeading) * 1.5,
         this.carPos.y + 1.0,
@@ -740,20 +771,20 @@ export class RallyGame {
     const cy = h * 0.5;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(10, 20, 30, 0.75)';
+    ctx.fillStyle = 'rgba(10, 20, 30, 0.8)';
     ctx.beginPath();
     ctx.arc(cx, cy, w * 0.48, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.translate(cx, cy);
     ctx.rotate(-this.carHeading);
 
     // Circuit track
-    ctx.strokeStyle = '#555566';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#666a78';
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     for (let t = 0; t <= 1; t += 0.05) {
       const p = this.world.circuitCurve.getPoint(t);
@@ -778,14 +809,14 @@ export class RallyGame {
     }
     ctx.stroke();
 
-    // Active checkpoint
+    // Active checkpoint blip
     if (this.eventManager.markerGroup.visible) {
       const cpPos = this.eventManager.markerGroup.position;
       const cpx = (cpPos.x - this.carPos.x) * worldScale;
       const cpy = (cpPos.z - this.carPos.z) * worldScale;
       ctx.fillStyle = '#ffff00';
       ctx.beginPath();
-      ctx.arc(cpx, cpy, 4, 0, Math.PI * 2);
+      ctx.arc(cpx, cpy, 4.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -796,10 +827,10 @@ export class RallyGame {
     ctx.translate(cx, cy);
     ctx.fillStyle = '#00f0ff';
     ctx.beginPath();
-    ctx.moveTo(0, -6);
-    ctx.lineTo(4, 5);
+    ctx.moveTo(0, -7);
+    ctx.lineTo(5, 6);
     ctx.lineTo(0, 3);
-    ctx.lineTo(-4, 5);
+    ctx.lineTo(-5, 6);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -817,7 +848,6 @@ export class RallyGame {
   }
 }
 
-// Global initialization helper
 export function initGame() {
   if (!window.game) {
     window.game = new RallyGame();

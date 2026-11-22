@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { CIRCUIT_WAYPOINTS, RALLY_WAYPOINTS } from './world.js';
+import { CIRCUIT_WAYPOINTS, RALLY_WAYPOINTS, SPEED_TRAPS } from './world.js';
 
 export const EVENTS_CONFIG = [
   {
     id: 'free',
     name: 'Свободная езда (Free Roam)',
     tag: 'Исследование',
-    desc: 'Катайся по всей карте без ограничений, выполняй прыжки на трамплинах и ставь рекорды дрифта.',
+    desc: 'Катайся по всей карте без ограничений, замеряй скорость на радарах, прыгай с трамплинов и ставь рекорды дрифта.',
     spawn: { x: 0, z: 175, rotY: Math.PI / 2 },
     laps: 0,
     checkpoints: []
@@ -15,7 +15,7 @@ export const EVENTS_CONFIG = [
     id: 'circuit',
     name: 'Horizon Grand Prix (Кольцо)',
     tag: 'Асфальт • 2 круга',
-    desc: 'Скоростная кольцевая гонка на 2 круга по асфальту. Держи идеальную траекторию и жми нитро на прямых.',
+    desc: 'Скоростная кольцевая гонка на 2 круга по асфальту. Пройди все контрольные точки на рекордное время.',
     spawn: { x: -10, z: 180, rotY: Math.PI / 2 },
     laps: 2,
     checkpoints: CIRCUIT_WAYPOINTS
@@ -24,7 +24,7 @@ export const EVENTS_CONFIG = [
     id: 'rally',
     name: 'Rally Mountain Sprint (Спринт)',
     tag: 'Грунтовка • Точка-Точка',
-    desc: 'Грунтовый спринт по горной тропе через трамплины и шпильки до вершины.',
+    desc: 'Грунтовый ралли-спринт по горной тропе через трамплины и шпильки до вершины горы.',
     spawn: { x: 125, z: -210, rotY: -Math.PI / 2 },
     laps: 1,
     checkpoints: RALLY_WAYPOINTS
@@ -33,7 +33,7 @@ export const EVENTS_CONFIG = [
     id: 'drift',
     name: 'Gymkhana Drift (60 сек)',
     tag: 'Дрифт-челлендж',
-    desc: 'За 60 секунд набери максимальное количество очков заноса. Не врезайся, чтобы не потерять множитель!',
+    desc: 'За 60 секунд набери максимальное количество очков заноса. Не сбивай комбо!',
     spawn: { x: 0, z: 0, rotY: 0 },
     laps: 1,
     timeLimit: 60,
@@ -42,22 +42,26 @@ export const EVENTS_CONFIG = [
 ];
 
 export class EventManager {
-  constructor(scene, onNotification, onAudioTrigger) {
+  constructor(scene, onNotification, onAudioTrigger, onCountdown, onFinishModal) {
     this.scene = scene;
     this.onNotification = onNotification || (() => {});
     this.onAudioTrigger = onAudioTrigger || (() => {});
+    this.onCountdown = onCountdown || (() => {});
+    this.onFinishModal = onFinishModal || (() => {});
 
     this.currentEvent = EVENTS_CONFIG[0];
-    this.state = 'idle'; // 'idle', 'running', 'finished'
+    this.state = 'idle'; // 'idle', 'countdown', 'running', 'finished'
     this.time = 0;
+    this.countdownTimer = 0;
+    this.countdownStep = 3;
     this.lap = 1;
     this.cpIndex = 0;
-    
+    this.lastSplitTime = 0;
+
     // Scoring & Stunts
     this.driftScore = 0;
     this.driftCombo = 1.0;
     this.currentDriftPoints = 0;
-    this.maxJumpDist = 0;
     this.jumpStartPos = null;
 
     this.buildCheckpointMarkers();
@@ -85,19 +89,19 @@ export class EventManager {
 
   buildCheckpointMarkers() {
     this.markerGroup = new THREE.Group();
-    
-    // Gate arch
-    const ringGeo = new THREE.TorusGeometry(6, 0.4, 8, 24);
+
+    // Checkpoint arch torus
+    const ringGeo = new THREE.TorusGeometry(6.5, 0.45, 12, 32);
     ringGeo.rotateY(Math.PI / 2);
-    this.markerMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
+    this.markerMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true });
     this.markerMesh = new THREE.Mesh(ringGeo, this.markerMat);
     this.markerMesh.position.y = 5;
 
-    // Glowing vertical guide column
-    const colGeo = new THREE.CylinderGeometry(0.2, 0.2, 20, 8);
-    const colMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 });
+    // Laser column beam
+    const colGeo = new THREE.CylinderGeometry(0.25, 0.25, 30, 8);
+    const colMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.6 });
     const colMesh = new THREE.Mesh(colGeo, colMat);
-    colMesh.position.y = 10;
+    colMesh.position.y = 15;
     this.markerMesh.add(colMesh);
 
     this.markerGroup.add(this.markerMesh);
@@ -119,24 +123,37 @@ export class EventManager {
     this.driftScore = 0;
     this.driftCombo = 1.0;
     this.currentDriftPoints = 0;
-    this.maxJumpDist = 0;
     this.jumpStartPos = null;
     this.updateMarkerPosition();
   }
 
   start() {
-    this.state = 'running';
-    this.time = 0;
-    this.lap = 1;
-    this.cpIndex = 0;
-    this.driftScore = 0;
-    this.updateMarkerPosition();
-    this.onNotification(`Старт: ${this.currentEvent.name}!`, 'info');
+    // If racing mode (circuit/rally), start with 3-second countdown
+    if (this.currentEvent.id === 'circuit' || this.currentEvent.id === 'rally') {
+      this.state = 'countdown';
+      this.countdownTimer = 3.0;
+      this.countdownStep = 3;
+      this.time = 0;
+      this.lap = 1;
+      this.cpIndex = 0;
+      this.driftScore = 0;
+      this.updateMarkerPosition();
+      this.onCountdown(3);
+      this.onAudioTrigger('beep_low');
+    } else {
+      this.state = 'running';
+      this.time = 0;
+      this.lap = 1;
+      this.cpIndex = 0;
+      this.driftScore = 0;
+      this.updateMarkerPosition();
+      this.onNotification(`Старт: ${this.currentEvent.name}!`, 'info');
+    }
   }
 
   updateMarkerPosition() {
     const cps = this.currentEvent.checkpoints;
-    if (cps && cps.length > 0 && this.state === 'running') {
+    if (cps && cps.length > 0 && (this.state === 'running' || this.state === 'countdown')) {
       const target = cps[this.cpIndex];
       this.markerGroup.position.copy(target);
       this.markerGroup.visible = true;
@@ -146,9 +163,26 @@ export class EventManager {
   }
 
   update(carPos, speedKmh, isDrifting, isAirborne, dt) {
-    // Pulse and rotate checkpoint marker
+    // Checkpoint gate rotation
     if (this.markerGroup.visible) {
-      this.markerMesh.rotation.y += dt * 2;
+      this.markerMesh.rotation.y += dt * 2.2;
+    }
+
+    // Handle Countdown State
+    if (this.state === 'countdown') {
+      this.countdownTimer -= dt;
+      const currentInt = Math.ceil(this.countdownTimer);
+      if (currentInt !== this.countdownStep && currentInt > 0) {
+        this.countdownStep = currentInt;
+        this.onCountdown(this.countdownStep);
+        this.onAudioTrigger('beep_low');
+      } else if (this.countdownTimer <= 0) {
+        this.state = 'running';
+        this.onCountdown('GO!');
+        this.onAudioTrigger('beep_high');
+        setTimeout(() => this.onCountdown(null), 1200);
+      }
+      return;
     }
 
     // 1. Airtime and Jump calculation
@@ -160,19 +194,21 @@ export class EventManager {
       const dist = Math.round(this.jumpStartPos.distanceTo(carPos));
       this.jumpStartPos = null;
       if (dist > 8) {
-        const bonus = dist * 15;
+        let stars = '⭐';
+        if (dist >= 35) stars = '⭐⭐⭐';
+        else if (dist >= 20) stars = '⭐⭐';
+        const bonus = dist * 20;
         this.driftScore += bonus;
-        this.onNotification(`ПРЫЖОК: ${dist}м! +${bonus} PTS`, 'stunt');
+        this.onNotification(`ПРЫЖОК: ${dist}м! ${stars} +${bonus} PTS`, 'stunt');
         this.onAudioTrigger('checkpoint');
       }
     }
 
     // 2. Drift points calculation
     if (isDrifting && speedKmh > 35) {
-      this.currentDriftPoints += (speedKmh * 1.5 * dt);
-      this.driftCombo = Math.min(4.0, this.driftCombo + dt * 0.4);
+      this.currentDriftPoints += (speedKmh * 1.6 * dt);
+      this.driftCombo = Math.min(4.0, this.driftCombo + dt * 0.45);
     } else if (this.currentDriftPoints > 0) {
-      // Bank drift points
       const awarded = Math.round(this.currentDriftPoints * this.driftCombo);
       this.driftScore += awarded;
       if (awarded > 300) {
@@ -180,6 +216,22 @@ export class EventManager {
       }
       this.currentDriftPoints = 0;
       this.driftCombo = 1.0;
+    }
+
+    // 3. Speed Traps detection on map
+    for (let st of SPEED_TRAPS) {
+      const dist = Math.hypot(carPos.x - st.x, carPos.z - st.z);
+      if (dist < 12) {
+        if (!st.cooldown) {
+          st.cooldown = true;
+          let stars = '⭐';
+          if (speedKmh >= st.targetKmh + 30) stars = '⭐⭐⭐';
+          else if (speedKmh >= st.targetKmh) stars = '⭐⭐';
+          this.onNotification(`РАДАР СКОРОСТИ: ${Math.round(speedKmh)} КМ/Ч! ${stars}`, 'stunt');
+          this.onAudioTrigger('checkpoint');
+          setTimeout(() => { st.cooldown = false; }, 8000);
+        }
+      }
     }
 
     if (this.state !== 'running') return;
@@ -227,7 +279,10 @@ export class EventManager {
     this.markerGroup.visible = false;
     this.onAudioTrigger('finish');
 
-    let resultMsg = '';
+    let resultTitle = '';
+    let resultScore = '';
+    let isRecord = false;
+    let stars = '⭐⭐⭐';
     const evId = this.currentEvent.id;
 
     if (evId === 'drift') {
@@ -235,21 +290,28 @@ export class EventManager {
       const prev = this.getBestRecord('drift') || 0;
       if (total > prev) {
         this.saveRecord('drift', total);
-        resultMsg = `Новый рекорд дрифта: ${total} PTS!`;
-      } else {
-        resultMsg = `Финиш! Очки: ${total} (Рекорд: ${prev})`;
+        isRecord = true;
       }
+      resultTitle = 'ДРИФТ-ЧЕЛЛЕНДЖ ЗАВЕРШЁН';
+      resultScore = `${total} PTS (Рекорд: ${Math.max(total, prev)})`;
+      stars = total > 20000 ? '⭐⭐⭐' : (total > 8000 ? '⭐⭐' : '⭐');
     } else {
       const finalTime = this.time.toFixed(2);
       const prev = this.getBestRecord(evId);
       if (!prev || parseFloat(finalTime) < parseFloat(prev)) {
         this.saveRecord(evId, finalTime);
-        resultMsg = `Новый рекорд круга: ${finalTime}с!`;
-      } else {
-        resultMsg = `Время: ${finalTime}с (Рекорд: ${prev}с)`;
+        isRecord = true;
       }
+      resultTitle = 'ГОНКА ЗАВЕРШЕНА';
+      resultScore = `Время: ${finalTime}с (Рекорд: ${prev ? Math.min(parseFloat(finalTime), parseFloat(prev)) + 'с' : finalTime + 'с'})`;
     }
 
-    this.onNotification(resultMsg, 'finish');
+    this.onFinishModal({
+      title: resultTitle,
+      scoreText: resultScore,
+      isRecord,
+      stars,
+      eventName: this.currentEvent.name
+    });
   }
 }

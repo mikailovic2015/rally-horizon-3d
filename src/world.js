@@ -29,26 +29,111 @@ export const RAMPS = [
   { x: -235, z: -30, rotY: 0, length: 14, width: 7, height: 4.0 }
 ];
 
-// Procedural procedural asphalt texture with lane markings & curbs
+export const SPEED_TRAPS = [
+  { x: 190, z: 110, targetKmh: 200, name: 'Скоростной радар: Прямая горизонта' },
+  { x: -180, z: -160, targetKmh: 170, name: 'Скоростной радар: Западный спуск' }
+];
+
+// --- PROCEDURAL HIGH-FIDELITY CANVAS TEXTURES ---
+
+function createLushGrassTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+
+  // Rich organic meadow gradient
+  const grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, '#2e5b24');
+  grad.addColorStop(0.5, '#3b6f2f');
+  grad.addColorStop(1, '#284e20');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Grass blades & clover micro-speckles
+  for (let i = 0; i < 6000; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const g = Math.floor(70 + Math.random() * 70);
+    ctx.fillStyle = `rgb(${Math.floor(g * 0.45)}, ${g}, ${Math.floor(g * 0.3)})`;
+    ctx.fillRect(x, y, 2 + Math.random() * 2, 4 + Math.random() * 5);
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(40, 40);
+  return tex;
+}
+
+function createFoliageTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1e481b';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Dense leafy clusters
+  for (let i = 0; i < 2500; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const shade = Math.floor(50 + Math.random() * 85);
+    ctx.fillStyle = `rgb(${Math.floor(shade * 0.35)}, ${shade}, ${Math.floor(shade * 0.25)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 3 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2);
+  return tex;
+}
+
+function createWoodBarkTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#3a2417';
+  ctx.fillRect(0, 0, 128, 256);
+
+  // Vertical pine bark furrows
+  for (let i = 0; i < 800; i++) {
+    const x = Math.random() * 128;
+    const y = Math.random() * 256;
+    const col = Math.floor(30 + Math.random() * 40);
+    ctx.fillStyle = `rgb(${col + 15}, ${col}, ${col - 10})`;
+    ctx.fillRect(x, y, 2, 8 + Math.random() * 14);
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 3);
+  return tex;
+}
+
 function createAsphaltTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
 
-  // Dark asphalt base with noise grain
   ctx.fillStyle = '#22252a';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Road asphalt micro-speckles
-  for (let i = 0; i < 3000; i++) {
-    const lum = Math.floor(25 + Math.random() * 20);
+  // Road tarmac micro-grain
+  for (let i = 0; i < 4000; i++) {
+    const lum = Math.floor(25 + Math.random() * 25);
     ctx.fillStyle = `rgb(${lum}, ${lum}, ${lum})`;
     ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
   }
 
   // Red and white racing curbs (outer edges)
-  const curbH = 32;
+  const curbH = 34;
   for (let y = 0; y < 512; y += 64) {
     ctx.fillStyle = '#d92525';
     ctx.fillRect(0, y, curbH, 32);
@@ -58,7 +143,7 @@ function createAsphaltTexture() {
     ctx.fillRect(512 - curbH, y + 32, curbH, 32);
   }
 
-  // White side lines
+  // White side safety lines
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(curbH + 4, 0, 8, 512);
   ctx.fillRect(512 - curbH - 12, 0, 8, 512);
@@ -69,6 +154,11 @@ function createAsphaltTexture() {
     ctx.fillRect(252, y + 10, 8, 44);
   }
 
+  // Rubber skid marks on apex
+  ctx.fillStyle = 'rgba(10, 12, 16, 0.35)';
+  ctx.fillRect(160, 0, 25, 512);
+  ctx.fillRect(325, 0, 25, 512);
+
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
@@ -76,7 +166,6 @@ function createAsphaltTexture() {
   return tex;
 }
 
-// Procedural rally gravel texture
 function createGravelTexture() {
   const c = document.createElement('canvas');
   c.width = 256;
@@ -86,17 +175,16 @@ function createGravelTexture() {
   ctx.fillStyle = '#7a5232';
   ctx.fillRect(0, 0, 256, 256);
 
-  // Pebble and tire tracks
-  for (let i = 0; i < 1500; i++) {
+  for (let i = 0; i < 2000; i++) {
     const val = 70 + Math.random() * 50;
     ctx.fillStyle = `rgb(${val + 30}, ${val + 10}, ${val - 10})`;
     ctx.fillRect(Math.random() * 256, Math.random() * 256, 3, 3);
   }
 
-  // Dusty tire track ruts
-  ctx.fillStyle = 'rgba(50, 30, 15, 0.25)';
-  ctx.fillRect(40, 0, 45, 256);
-  ctx.fillRect(170, 0, 45, 256);
+  // Heavy tire track ruts
+  ctx.fillStyle = 'rgba(40, 25, 12, 0.35)';
+  ctx.fillRect(40, 0, 48, 256);
+  ctx.fillRect(168, 0, 48, 256);
 
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.RepeatWrapping;
@@ -114,6 +202,9 @@ export class GameWorld {
     this.circuitSamples = this.circuitCurve.getSpacedPoints(120);
     this.rallySamples = this.rallyCurve.getSpacedPoints(80);
 
+    this.grassTex = createLushGrassTexture();
+    this.foliageTex = createFoliageTexture();
+    this.barkTex = createWoodBarkTexture();
     this.asphaltTex = createAsphaltTexture();
     this.gravelTex = createGravelTexture();
 
@@ -121,6 +212,7 @@ export class GameWorld {
     this.buildRoads();
     this.buildRamps();
     this.buildProps();
+    this.buildSpeedTraps();
   }
 
   buildTerrain() {
@@ -139,8 +231,8 @@ export class GameWorld {
     geo.computeVertexNormals();
 
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x3d7032,
-      roughness: 0.9,
+      map: this.grassTex,
+      roughness: 0.85,
       metalness: 0.05
     });
     const ground = new THREE.Mesh(geo, mat);
@@ -201,13 +293,10 @@ export class GameWorld {
   }
 
   buildRoads() {
-    // Asphalt circuit with curbs and markings
     this.buildRibbon(this.circuitCurve, 180, 16, this.asphaltTex, 0.05);
-
-    // Rally gravel trail
     this.buildRibbon(this.rallyCurve, 100, 14, this.gravelTex, 0.06);
 
-    // Horizon Festival Start/Finish Gantry with floodlights
+    // Festival Start/Finish Gantry
     const archGroup = new THREE.Group();
     archGroup.position.set(0, 0, 180);
 
@@ -226,7 +315,6 @@ export class GameWorld {
     const banner = new THREE.Mesh(new THREE.BoxGeometry(18.5, 1.2, 1.3), bannerMat);
     banner.position.set(0, 7.8, 0);
 
-    // Stadium spotlights
     [-8, -4, 0, 4, 8].forEach(x => {
       const spot = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.4), orangeNeonMat);
       spot.position.set(x, 8.8, 0);
@@ -260,9 +348,9 @@ export class GameWorld {
          hw, 0,  l * 0.5
       ]);
       const idx = [
-        0, 1, 2,  1, 3, 2, // slope
-        2, 3, 4,  3, 5, 4, // drop
-        0, 2, 4,  1, 5, 3  // sides
+        0, 1, 2,  1, 3, 2,
+        2, 3, 4,  3, 5, 4,
+        0, 2, 4,  1, 5, 3
       ];
       geom.setAttribute('position', new THREE.BufferAttribute(v, 3));
       geom.setIndex(idx);
@@ -277,42 +365,97 @@ export class GameWorld {
   }
 
   buildProps() {
-    // 120 stylized low-poly trees
-    const count = 120;
-    const trunkGeo = new THREE.CylinderGeometry(0.35, 0.45, 2.2, 8);
-    const foliageGeo = new THREE.ConeGeometry(2.4, 5.5, 8);
-    foliageGeo.translate(0, 3.8, 0);
+    // 1. Multi-tier textured pine trees (100 instances)
+    const treeCount = 100;
+    const trunkGeo = new THREE.CylinderGeometry(0.35, 0.45, 2.5, 8);
+    const foliageGeo = new THREE.ConeGeometry(2.4, 6.0, 8);
+    foliageGeo.translate(0, 4.0, 0);
 
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x422a1d, roughness: 0.9 });
-    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x27632a, roughness: 0.8 });
+    const trunkMat = new THREE.MeshStandardMaterial({ map: this.barkTex, roughness: 0.9 });
+    const foliageMat = new THREE.MeshStandardMaterial({ map: this.foliageTex, roughness: 0.75 });
 
-    const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, count);
-    const foliageInst = new THREE.InstancedMesh(foliageGeo, foliageMat, count);
+    const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
+    const foliageInst = new THREE.InstancedMesh(foliageGeo, foliageMat, treeCount);
+
+    // 2. Detailed textured bushes (80 instances)
+    const bushCount = 80;
+    const bushGeo = new THREE.SphereGeometry(1.6, 8, 8);
+    bushGeo.scale(1.2, 0.8, 1.2);
+    const bushInst = new THREE.InstancedMesh(bushGeo, foliageMat, bushCount);
 
     const dummy = new THREE.Object3D();
-    let placed = 0;
     let seed = 42;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
 
-    while (placed < count) {
+    // Place trees
+    let placedTrees = 0;
+    while (placedTrees < treeCount) {
       const rx = (rnd() - 0.5) * 800;
       const rz = (rnd() - 0.5) * 800;
-      const surf = this.getSurfaceType(rx, rz);
-      if (surf === 'grass') {
+      if (this.getSurfaceType(rx, rz) === 'grass') {
         const s = 0.85 + rnd() * 0.5;
-        dummy.position.set(rx, 1, rz);
+        dummy.position.set(rx, 1.2, rz);
         dummy.scale.set(s, s, s);
         dummy.rotation.y = rnd() * Math.PI * 2;
         dummy.updateMatrix();
 
-        trunkInst.setMatrixAt(placed, dummy.matrix);
-        foliageInst.setMatrixAt(placed, dummy.matrix);
-        placed++;
+        trunkInst.setMatrixAt(placedTrees, dummy.matrix);
+        foliageInst.setMatrixAt(placedTrees, dummy.matrix);
+        placedTrees++;
       }
     }
+
+    // Place bushes
+    let placedBushes = 0;
+    while (placedBushes < bushCount) {
+      const rx = (rnd() - 0.5) * 600;
+      const rz = (rnd() - 0.5) * 600;
+      if (this.getSurfaceType(rx, rz) === 'grass') {
+        const s = 0.7 + rnd() * 0.6;
+        dummy.position.set(rx, 0.8 * s, rz);
+        dummy.scale.set(s, s, s);
+        dummy.rotation.y = rnd() * Math.PI * 2;
+        dummy.updateMatrix();
+
+        bushInst.setMatrixAt(placedBushes, dummy.matrix);
+        placedBushes++;
+      }
+    }
+
     trunkInst.instanceMatrix.needsUpdate = true;
     foliageInst.instanceMatrix.needsUpdate = true;
-    this.scene.add(trunkInst, foliageInst);
+    bushInst.instanceMatrix.needsUpdate = true;
+
+    this.scene.add(trunkInst, foliageInst, bushInst);
+  }
+
+  buildSpeedTraps() {
+    this.speedTrapObjects = [];
+    SPEED_TRAPS.forEach(st => {
+      const g = new THREE.Group();
+      g.position.set(st.x, 0, st.z);
+
+      // Radar camera speed trap arch
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x22262e, metalness: 0.8 });
+      const camMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+
+      const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 6, 0.6), postMat);
+      p1.position.set(-8, 3, 0);
+      const p2 = p1.clone();
+      p2.position.x = 8;
+
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.8, 0.6), postMat);
+      beam.position.set(0, 6, 0);
+
+      const camL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.8), camMat);
+      camL.position.set(-3, 5.5, 0);
+      const camR = camL.clone();
+      camR.position.x = 3;
+
+      g.add(p1, p2, beam, camL, camR);
+      this.scene.add(g);
+      this.speedTrapObjects.push({ ...st, group: g, triggered: false });
+    });
   }
 
   getSurfaceType(x, z) {

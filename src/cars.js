@@ -5,9 +5,9 @@ export const CARS_DATA = [
     id: 'apex_gt',
     name: 'Apex Horizon GT',
     type: 'Hypercar',
-    description: 'Аэродинамичный гиперкар со скошенным носом, прижимным антикрылом, расширенными арками и безумной прижимной силой.',
-    color: 0x00d2ff,
-    accentColor: 0x111318,
+    description: 'Аэродинамичный гиперкар со скошенным носом, прижимным антикрылом, расширенными арками и карбоновым сплиттером.',
+    color: '#00d2ff',
+    accentColor: '#111318',
     topSpeed: 275,
     acceleration: 97,
     handling: 94,
@@ -21,8 +21,8 @@ export const CARS_DATA = [
     name: 'Rally Beast 4x4',
     type: 'WRC Rally',
     description: 'Раллийный хэтчбек с покатой крышей, широким обвесом, воздухозаборником на крыше и энергоёмкой подвеской.',
-    color: 0xff4500,
-    accentColor: 0xffffff,
+    color: '#ff4500',
+    accentColor: '#ffffff',
     topSpeed: 220,
     acceleration: 90,
     handling: 88,
@@ -36,8 +36,8 @@ export const CARS_DATA = [
     name: 'Nightdrift S15',
     type: 'JDM Drift',
     description: 'Низкое японское купе с широкими фендерами, дактейл-спойлером и выворотом колес для экстремального угла заноса.',
-    color: 0x9900ff,
-    accentColor: 0x00ffcc,
+    color: '#9900ff',
+    accentColor: '#00ffcc',
     topSpeed: 235,
     acceleration: 86,
     handling: 82,
@@ -50,9 +50,9 @@ export const CARS_DATA = [
     id: 'muscle_v8',
     name: 'Thunder V8 RT',
     type: 'Muscle Car',
-    description: 'Мускулистый фастбек с длинным рельефным капотом, воздухозаборником, двойными полосами и громоподобным V8.',
-    color: 0x18181c,
-    accentColor: 0xffbb00,
+    description: 'Мускулистый фастбек с длинным рельефным капотом, воздухозаборником, двойными полосами и мотором V8 Hemi.',
+    color: '#18181c',
+    accentColor: '#ffbb00',
     topSpeed: 255,
     acceleration: 94,
     handling: 74,
@@ -66,8 +66,8 @@ export const CARS_DATA = [
     name: 'Dakar Raptor 4x4',
     type: 'Trophy Truck',
     description: 'Внедорожный прототип с гигантским дорожным просветом, стальным каркасом, запасным колесом и огромными шинами.',
-    color: 0x22ee44,
-    accentColor: 0x1a1a1a,
+    color: '#22ee44',
+    accentColor: '#1a1a1a',
     topSpeed: 205,
     acceleration: 84,
     handling: 76,
@@ -78,72 +78,179 @@ export const CARS_DATA = [
   }
 ];
 
-// Reusable realistic automotive materials
+// --- PROCEDURAL CANVAS TEXTURES FOR REALISTIC CAR MATERIALS ---
+function createCarbonTexture() {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#111215';
+  ctx.fillRect(0, 0, 64, 64);
+  for (let y = 0; y < 64; y += 8) {
+    for (let x = 0; x < 64; x += 8) {
+      if ((x + y) % 16 === 0) {
+        ctx.fillStyle = '#22252a';
+        ctx.fillRect(x, y, 8, 8);
+      }
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  return tex;
+}
+
+function createTireTreadTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1c1c1f';
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = '#0f0f11';
+  // Longitudinal rain grooves and directional diagonal treads
+  ctx.fillRect(30, 0, 10, 128);
+  ctx.fillRect(88, 0, 10, 128);
+  for (let y = 0; y < 128; y += 16) {
+    ctx.fillRect(0, y, 30, 6);
+    ctx.fillRect(98, y + 8, 30, 6);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 8);
+  return tex;
+}
+
+function createBrakeDiscTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#8a919e';
+  ctx.fillRect(0, 0, 128, 128);
+  // Circular brushing
+  ctx.strokeStyle = '#6e7582';
+  for (let r = 20; r < 60; r += 4) {
+    ctx.beginPath();
+    ctx.arc(64, 64, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Cross-drilled ventilation holes
+  ctx.fillStyle = '#222';
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+    for (let r of [32, 44, 54]) {
+      const x = 64 + Math.cos(a) * r;
+      const y = 64 + Math.sin(a) * r;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+function createHeadlightTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a101a';
+  ctx.fillRect(0, 0, 128, 64);
+  // Xenon projector lens circles with bright glow
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(40, 32, 18, 0, Math.PI * 2);
+  ctx.arc(88, 32, 18, 0, Math.PI * 2);
+  ctx.fill();
+  // Cyan LED DRL eyebrow strip
+  ctx.fillStyle = '#00f0ff';
+  ctx.fillRect(10, 6, 108, 6);
+  return new THREE.CanvasTexture(c);
+}
+
+const carbonTex = createCarbonTexture();
+const tireTex = createTireTreadTexture();
+const brakeDiscTex = createBrakeDiscTexture();
+const headlightTex = createHeadlightTexture();
+
 const MATS = {
   glass: new THREE.MeshStandardMaterial({
-    color: 0x0b1320,
-    roughness: 0.08,
-    metalness: 0.9,
+    color: 0x09121f,
+    roughness: 0.05,
+    metalness: 0.95,
     transparent: true,
-    opacity: 0.9
+    opacity: 0.92
   }),
   carbon: new THREE.MeshStandardMaterial({
-    color: 0x141416,
-    roughness: 0.45,
-    metalness: 0.3
+    map: carbonTex,
+    roughness: 0.35,
+    metalness: 0.4
   }),
   tire: new THREE.MeshStandardMaterial({
-    color: 0x18181a,
-    roughness: 0.9,
-    metalness: 0.05
+    map: tireTex,
+    roughness: 0.85,
+    metalness: 0.08
   }),
   rimSilver: new THREE.MeshStandardMaterial({
-    color: 0xe5e9f0,
-    roughness: 0.2,
-    metalness: 0.92
+    color: 0xe8edf2,
+    roughness: 0.18,
+    metalness: 0.95
   }),
   rimGold: new THREE.MeshStandardMaterial({
-    color: 0xffbf00,
+    color: 0xffb700,
     roughness: 0.2,
     metalness: 0.92
   }),
   brakeDisc: new THREE.MeshStandardMaterial({
-    color: 0x8a929e,
-    roughness: 0.3,
+    map: brakeDiscTex,
+    roughness: 0.25,
     metalness: 0.85
   }),
   caliperRed: new THREE.MeshStandardMaterial({
-    color: 0xee0011,
-    roughness: 0.25,
-    metalness: 0.5
+    color: 0xe60012,
+    roughness: 0.2,
+    metalness: 0.6
   }),
   chrome: new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    roughness: 0.08,
-    metalness: 0.96
+    roughness: 0.06,
+    metalness: 0.98
   }),
-  headlightLens: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-  headlightGlow: new THREE.MeshBasicMaterial({ color: 0x00f0ff }),
-  taillightOff: new THREE.MeshStandardMaterial({ color: 0x4a0000, roughness: 0.3 }),
-  taillightOn: new THREE.MeshBasicMaterial({ color: 0xff0022 }),
-  shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 })
+  headlight: new THREE.MeshBasicMaterial({
+    map: headlightTex
+  }),
+  taillightOff: new THREE.MeshStandardMaterial({
+    color: 0x440000,
+    roughness: 0.3,
+    metalness: 0.3
+  }),
+  taillightOn: new THREE.MeshBasicMaterial({
+    color: 0xff002b
+  }),
+  shadow: new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.55
+  })
 };
 
 /**
- * Creates 3D sports wheel with rounded tire shoulder, deep dish alloy rim, rotor, and red caliper
+ * Creates realistic 3D sport wheel with textured tire, alloy rim, rotor, and red caliper
  */
 function createCurvedWheel(radius = 0.36, width = 0.28, isGold = false, isOffroad = false) {
   const wheelGroup = new THREE.Group();
 
-  // 1. Tire with smooth bevel
+  // 1. Treaded Tire
   const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 24);
   tireGeo.rotateZ(Math.PI / 2);
   const tire = new THREE.Mesh(tireGeo, MATS.tire);
   wheelGroup.add(tire);
 
-  // 2. Alloy rim with deep dish
-  const rimR = isOffroad ? radius * 0.6 : radius * 0.73;
-  const rimGeo = new THREE.CylinderGeometry(rimR, rimR * 0.9, width + 0.015, 20);
+  // 2. Deep-dish alloy rim
+  const rimR = isOffroad ? radius * 0.6 : radius * 0.74;
+  const rimGeo = new THREE.CylinderGeometry(rimR, rimR * 0.88, width + 0.016, 20);
   rimGeo.rotateZ(Math.PI / 2);
   const rimMat = isGold ? MATS.rimGold : MATS.rimSilver;
   const rim = new THREE.Mesh(rimGeo, rimMat);
@@ -151,7 +258,7 @@ function createCurvedWheel(radius = 0.36, width = 0.28, isGold = false, isOffroa
 
   // 3. Multi-spoke 3D face
   const spokeCount = isOffroad ? 6 : 5;
-  const spokeLen = rimR * 0.72;
+  const spokeLen = rimR * 0.74;
   for (let i = 0; i < spokeCount; i++) {
     const angle = (i / spokeCount) * Math.PI * 2;
     const spokeGeo = new THREE.BoxGeometry(width + 0.02, spokeLen, 0.06);
@@ -161,19 +268,19 @@ function createCurvedWheel(radius = 0.36, width = 0.28, isGold = false, isOffroa
     wheelGroup.add(spoke);
   }
 
-  // 4. Center hub
+  // 4. Center hub cap
   const hubGeo = new THREE.CylinderGeometry(rimR * 0.26, rimR * 0.26, width + 0.035, 12);
   hubGeo.rotateZ(Math.PI / 2);
   const hub = new THREE.Mesh(hubGeo, MATS.carbon);
   wheelGroup.add(hub);
 
   // 5. Cross-drilled brake rotor & red Brembo-style caliper
-  const discGeo = new THREE.CylinderGeometry(rimR * 0.82, rimR * 0.82, 0.035, 16);
+  const discGeo = new THREE.CylinderGeometry(rimR * 0.84, rimR * 0.84, 0.035, 18);
   discGeo.rotateZ(Math.PI / 2);
   const disc = new THREE.Mesh(discGeo, MATS.brakeDisc);
   wheelGroup.add(disc);
 
-  const caliperGeo = new THREE.BoxGeometry(0.08, rimR * 0.46, 0.12);
+  const caliperGeo = new THREE.BoxGeometry(0.08, rimR * 0.48, 0.12);
   const caliper = new THREE.Mesh(caliperGeo, MATS.caliperRed);
   caliper.position.set(0, rimR * 0.55, 0);
   wheelGroup.add(caliper);
@@ -186,7 +293,6 @@ function createCurvedWheel(radius = 0.36, width = 0.28, isGold = false, isOffroa
  */
 function createWheelArch(radius, width, thickness, mat) {
   const g = new THREE.Group();
-  // Half torus / cylinder arch
   const archGeo = new THREE.TorusGeometry(radius + 0.05, thickness, 8, 16, Math.PI);
   archGeo.rotateY(Math.PI / 2);
   const archL = new THREE.Mesh(archGeo, mat);
@@ -198,7 +304,7 @@ function createWheelArch(radius, width, thickness, mat) {
 }
 
 /**
- * Procedural authentic non-rectangular 3D car builder
+ * Procedural authentic curved 3D car builder
  */
 export function buildCar3D(carConfig) {
   const root = new THREE.Group();
@@ -207,17 +313,17 @@ export function buildCar3D(carConfig) {
   const chassisTilt = new THREE.Group();
   root.add(chassisTilt);
 
-  // High-gloss metallic automotive finish
+  // Metallic automotive paint with gloss clearcoat
   const bodyPaint = new THREE.MeshStandardMaterial({
     color: carConfig.color,
-    metalness: 0.72,
-    roughness: 0.18
+    metalness: 0.74,
+    roughness: 0.16
   });
 
   const accentPaint = new THREE.MeshStandardMaterial({
     color: carConfig.accentColor,
-    metalness: 0.6,
-    roughness: 0.25
+    metalness: 0.65,
+    roughness: 0.22
   });
 
   const tailMat = MATS.taillightOff.clone();
@@ -253,18 +359,18 @@ export function buildCar3D(carConfig) {
 
   // --- SCULPTED AUTHENTIC BODY PROFILES VIA SHAPES & EXTRUSIONS ---
   if (carConfig.id === 'apex_gt') {
-    // 1. HYPERCAR SCULPTED PROFILE (Wedge silhouette with sloping hood & fastback)
+    // 1. HYPERCAR PROFILE
     const profileShape = new THREE.Shape();
-    profileShape.moveTo(-2.25, 0.15); // rear diffuser
-    profileShape.lineTo(-2.25, 0.52); // rear deck
-    profileShape.lineTo(-1.60, 0.62); // engine cover
-    profileShape.lineTo(-0.70, 0.96); // rear roof
-    profileShape.lineTo(0.20, 0.96);  // front roof
-    profileShape.lineTo(1.10, 0.54);  // windshield base
-    profileShape.lineTo(2.20, 0.35);  // low sloping nose
-    profileShape.lineTo(2.35, 0.14);  // front splitter tip
-    profileShape.lineTo(2.20, 0.10);  // front undertray
-    profileShape.lineTo(-2.0, 0.10);  // rear flat floor
+    profileShape.moveTo(-2.25, 0.15);
+    profileShape.lineTo(-2.25, 0.52);
+    profileShape.lineTo(-1.60, 0.62);
+    profileShape.lineTo(-0.70, 0.96);
+    profileShape.lineTo(0.20, 0.96);
+    profileShape.lineTo(1.10, 0.54);
+    profileShape.lineTo(2.20, 0.35);
+    profileShape.lineTo(2.35, 0.14);
+    profileShape.lineTo(2.20, 0.10);
+    profileShape.lineTo(-2.0, 0.10);
     profileShape.closePath();
 
     const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
@@ -281,14 +387,14 @@ export function buildCar3D(carConfig) {
     bodyMesh.position.set(0, groundClearance + 0.5, 0);
     chassisTilt.add(bodyMesh);
 
-    // Muscular Flared Wheel Arches (Fenders)
+    // Flared muscular wheel arches
     const fArch = createWheelArch(wheelRadius, trackWidth + 0.06, 0.08, bodyPaint);
     fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
     const rArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.09, bodyPaint);
     rArch.position.set(0, groundClearance + wheelRadius, -wheelBase * 0.5);
     chassisTilt.add(fArch, rArch);
 
-    // Sculpted Glass Canopy (Windshield, roof and side glass)
+    // Sculpted Glass Canopy
     const canopyShape = new THREE.Shape();
     canopyShape.moveTo(-1.4, 0.60);
     canopyShape.lineTo(-0.65, 0.98);
@@ -310,12 +416,19 @@ export function buildCar3D(carConfig) {
     canopy.position.set(0, groundClearance + 0.53, -0.2);
     chassisTilt.add(canopy);
 
-    // Front aerodynamic carbon splitter with side canards
+    // Front aerodynamic carbon splitter
     const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.05, 0.8), MATS.carbon);
     splitter.position.set(0, groundClearance + 0.08, 2.15);
     chassisTilt.add(splitter);
 
-    // Aerodynamic Rear GT Wing on sculpted swan-neck pylons
+    // Carbon fiber side skirts
+    const skirtL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 2.4), MATS.carbon);
+    skirtL.position.set(-0.85, groundClearance + 0.1, 0);
+    const skirtR = skirtL.clone();
+    skirtR.position.x = 0.85;
+    chassisTilt.add(skirtL, skirtR);
+
+    // Rear GT Wing on carbon pylons
     const pL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.22), MATS.carbon);
     pL.position.set(-0.55, groundClearance + 0.65, -2.05);
     const pR = pL.clone();
@@ -330,8 +443,8 @@ export function buildCar3D(carConfig) {
     endR.position.x = 0.96;
     chassisTilt.add(pL, pR, wingBlade, endL, endR);
 
-    // Xenon Projector Headlights
-    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.15), MATS.headlightLens);
+    // Headlights
+    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.1, 0.16), MATS.headlight);
     hlL.position.set(-0.64, groundClearance + 0.36, 2.22);
     const hlR = hlL.clone();
     hlR.position.x = 0.64;
@@ -354,15 +467,15 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(0.16, groundClearance + 0.26, -2.35));
 
   } else if (carConfig.id === 'rally_wrc') {
-    // 2. WRC RALLY HATCHBACK PROFILE
+    // 2. WRC RALLY PROFILE
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-1.95, 0.16);
-    profileShape.lineTo(-1.95, 0.72); // steep rally hatch tail
-    profileShape.lineTo(-1.50, 1.08); // roof rear
-    profileShape.lineTo(0.10, 1.08);  // roof front
-    profileShape.lineTo(0.95, 0.62);  // windshield
-    profileShape.lineTo(1.85, 0.50);  // hood
-    profileShape.lineTo(2.05, 0.18);  // nose
+    profileShape.lineTo(-1.95, 0.72);
+    profileShape.lineTo(-1.50, 1.08);
+    profileShape.lineTo(0.10, 1.08);
+    profileShape.lineTo(0.95, 0.62);
+    profileShape.lineTo(1.85, 0.50);
+    profileShape.lineTo(2.05, 0.18);
     profileShape.lineTo(1.90, 0.12);
     profileShape.lineTo(-1.8, 0.12);
     profileShape.closePath();
@@ -381,7 +494,7 @@ export function buildCar3D(carConfig) {
     bodyMesh.position.set(0, groundClearance + 0.55, 0);
     chassisTilt.add(bodyMesh);
 
-    // Rally Widebody Overfenders
+    // Rally widebody overfenders
     const fArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.10, bodyPaint);
     fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
     const rArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.10, bodyPaint);
@@ -417,7 +530,7 @@ export function buildCar3D(carConfig) {
 
     // Quad bonnet rally fog pods
     for (let i = -0.45; i <= 0.46; i += 0.3) {
-      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 14), MATS.headlightLens);
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 14), MATS.headlight);
       lamp.geometry.rotateX(Math.PI / 2);
       lamp.position.set(i, groundClearance + 0.68, 1.82);
       chassisTilt.add(lamp);
@@ -441,16 +554,16 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(-0.52, groundClearance + 0.22, -2.05));
 
   } else if (carConfig.id === 'drift_s15') {
-    // 3. JDM DRIFT COUPE PROFILE
+    // 3. JDM DRIFT PROFILE
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.15, 0.14);
-    profileShape.lineTo(-2.15, 0.56); // trunk deck
+    profileShape.lineTo(-2.15, 0.56);
     profileShape.lineTo(-1.50, 0.62);
-    profileShape.lineTo(-0.60, 0.98); // coupe roof
+    profileShape.lineTo(-0.60, 0.98);
     profileShape.lineTo(0.25, 0.98);
-    profileShape.lineTo(1.15, 0.58);  // slanted windshield
-    profileShape.lineTo(2.05, 0.44);  // long hood
-    profileShape.lineTo(2.20, 0.16);  // front bumper
+    profileShape.lineTo(1.15, 0.58);
+    profileShape.lineTo(2.05, 0.44);
+    profileShape.lineTo(2.20, 0.16);
     profileShape.lineTo(2.05, 0.10);
     profileShape.lineTo(-1.95, 0.10);
     profileShape.closePath();
@@ -469,7 +582,7 @@ export function buildCar3D(carConfig) {
     bodyMesh.position.set(0, groundClearance + 0.5, 0);
     chassisTilt.add(bodyMesh);
 
-    // Extreme bolt-on Rocket Bunny widebody fenders
+    // Rocket Bunny widebody fenders
     const fArch = createWheelArch(wheelRadius, trackWidth + 0.12, 0.12, accentPaint);
     fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
     const rArch = createWheelArch(wheelRadius, trackWidth + 0.14, 0.13, accentPaint);
@@ -491,7 +604,8 @@ export function buildCar3D(carConfig) {
       bevelSize: 0.06,
       bevelThickness: 0.06
     });
-    canopyExtrude_center(cabinExtrude);
+    cabinExtrude.center();
+    cabinExtrude.rotateY(Math.PI / 2);
     const cabin = new THREE.Mesh(cabinExtrude, MATS.glass);
     cabin.position.set(0, groundClearance + 0.53, -0.15);
     chassisTilt.add(cabin);
@@ -503,7 +617,7 @@ export function buildCar3D(carConfig) {
     chassisTilt.add(ducktail);
 
     // Headlights
-    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.12, 0.12), MATS.headlightLens);
+    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.12, 0.12), MATS.headlight);
     hlL.position.set(-0.62, groundClearance + 0.38, 2.15);
     const hlR = hlL.clone();
     hlR.position.x = 0.62;
@@ -527,16 +641,16 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(-0.64, groundClearance + 0.20, -2.32));
 
   } else if (carConfig.id === 'muscle_v8') {
-    // 4. AMERICAN MUSCLE FASTBACK PROFILE
+    // 4. AMERICAN MUSCLE PROFILE
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.25, 0.16);
-    profileShape.lineTo(-2.25, 0.60); // high muscle trunk
+    profileShape.lineTo(-2.25, 0.60);
     profileShape.lineTo(-1.60, 0.68);
-    profileShape.lineTo(-0.60, 1.05); // roof
+    profileShape.lineTo(-0.60, 1.05);
     profileShape.lineTo(0.20, 1.05);
-    profileShape.lineTo(1.05, 0.66);  // fastback windshield
-    profileShape.lineTo(2.15, 0.54);  // long wide muscle hood
-    profileShape.lineTo(2.30, 0.20);  // upright front grille
+    profileShape.lineTo(1.05, 0.66);
+    profileShape.lineTo(2.15, 0.54);
+    profileShape.lineTo(2.30, 0.20);
     profileShape.lineTo(2.10, 0.12);
     profileShape.lineTo(-2.0, 0.12);
     profileShape.closePath();
@@ -574,7 +688,7 @@ export function buildCar3D(carConfig) {
 
     // Quad Round Muscle Headlights
     [-0.68, -0.44, 0.44, 0.68].forEach(x => {
-      const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.12, 14), MATS.headlightLens);
+      const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.12, 14), MATS.headlight);
       hl.geometry.rotateX(Math.PI / 2);
       hl.position.set(x, groundClearance + 0.48, 2.32);
       chassisTilt.add(hl);
@@ -593,16 +707,16 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(0.5, groundClearance + 0.22, -2.35));
 
   } else {
-    // 5. DAKAR TROPHY TRUCK 4x4 PROFILE
+    // 5. DAKAR TROPHY TRUCK PROFILE
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.20, 0.20);
-    profileShape.lineTo(-2.20, 0.70); // open pickup bed
+    profileShape.lineTo(-2.20, 0.70);
     profileShape.lineTo(-0.60, 0.70);
-    profileShape.lineTo(-0.40, 1.25); // truck cab rear
-    profileShape.lineTo(0.50, 1.25);  // truck cab roof
-    profileShape.lineTo(1.20, 0.72);  // windshield
-    profileShape.lineTo(2.20, 0.60);  // high hood
-    profileShape.lineTo(2.35, 0.26);  // front skid plate
+    profileShape.lineTo(-0.40, 1.25);
+    profileShape.lineTo(0.50, 1.25);
+    profileShape.lineTo(1.20, 0.72);
+    profileShape.lineTo(2.20, 0.60);
+    profileShape.lineTo(2.35, 0.26);
     profileShape.lineTo(2.10, 0.16);
     profileShape.lineTo(-2.0, 0.16);
     profileShape.closePath();
@@ -633,7 +747,7 @@ export function buildCar3D(carConfig) {
     cageBar.position.set(0, groundClearance + 1.5, 0.15);
     chassisTilt.add(cageBar);
 
-    // Mounted 37-inch spare tire in truck bed
+    // Mounted 37-inch spare tire
     const spare = createCurvedWheel(0.52, 0.34, false, true);
     spare.rotation.x = Math.PI / 3;
     spare.position.set(0, groundClearance + 0.85, -1.35);
@@ -645,7 +759,7 @@ export function buildCar3D(carConfig) {
     chassisTilt.add(bullbar);
 
     // High-power Roof LED Lightbar
-    const ledBar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.15), MATS.headlightLens);
+    const ledBar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.15), MATS.headlight);
     ledBar.position.set(0, groundClearance + 1.55, 0.35);
     chassisTilt.add(ledBar);
 
@@ -719,9 +833,4 @@ export function buildCar3D(carConfig) {
       }
     }
   };
-}
-
-function canopyExtrude_center(geom) {
-  geom.center();
-  geom.rotateY(Math.PI / 2);
 }
