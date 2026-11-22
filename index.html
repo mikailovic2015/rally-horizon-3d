@@ -1167,11 +1167,24 @@
   <div id="multiplayer-modal" class="hidden">
     <div class="quick-card">
       <h2>МУЛЬТИПЛЕЕР</h2>
-      <div class="mp-list" id="mp-lobby-list"></div>
-      <p class="mp-note">Игроки-боты с никами. Создано 4 лобби с разными событиями. Нажми «ПОДКЛЮЧИТЬСЯ».</p>
+      <div class="set-row" style="margin-bottom:10px;">
+        <span>Сервер:</span>
+        <input type="text" id="mp-server-url" placeholder="rally-horizon-server.onrender.com" 
+               value="" style="flex:1; background:#0a0e14; color:#00f0ff; border:1px solid #00f0ff; padding:6px 10px; border-radius:8px; font-size:12px;">
+      </div>
+      <div class="quick-actions" style="margin-bottom:15px;">
+        <button class="res-btn primary" id="mp-btn-create">СОЗДАТЬ КОМНАТУ</button>
+        <button class="res-btn secondary" id="mp-btn-join">ВОЙТИ ПО КОДУ</button>
+      </div>
+      <div id="mp-room-code-display" style="display:none; text-align:center; padding:10px; background:rgba(0,240,255,0.1); border-radius:10px; margin-bottom:10px;">
+        <div style="font-size:12px; color:#9fb0c8;">КОД КОМНАТЫ</div>
+        <div id="mp-room-code" style="font-size:32px; font-weight:900; color:#00f0ff; letter-spacing:4px;"></div>
+        <button id="mp-copy-code" style="margin-top:8px; font-size:11px; padding:4px 12px; border-radius:8px;">КОПИРОВАТЬ</button>
+      </div>
+      <div class="mp-list" id="mp-players-list"></div>
       <div class="quick-actions">
         <button class="res-btn secondary" id="mp-btn-close">Закрыть</button>
-        <button class="res-btn primary" id="mp-btn-create">СВОЁ ЛОББИ</button>
+        <button class="res-btn primary hidden" id="mp-btn-start">СТАРТ</button>
       </div>
     </div>
   </div>
@@ -1381,6 +1394,7 @@
     import { CARS_DATA } from './src/cars.js';
     import { EVENTS_CONFIG, getCredits, spendCredits, buyCar, isCarOwned, getOwnedSkins, isSkinOwned, buySkin } from './src/events.js';
     import { RallyGame, initGame } from './src/main.js';
+    import { MultiplayerClient } from './src/multiplayer.js';
 
     let selectedCarIdx = 0;
     let selectedEventId = 'free';
@@ -1621,57 +1635,95 @@
       ctrlBtnSet.textContent = window.game.controlMode === 'wheel' ? 'Руль / Стрелки' : 'Стрелки / Руль';
     });
 
-    // --- МУЛЬТИПЛЕЕР ---
-    const MP_HOSTS = [
-      { id: 'mp1', host: 'SpeedyMax#12', ev: 'circuit', players: '3/8', ping: 42 },
-      { id: 'mp2', host: 'DriftKing.RU', ev: 'drift', players: '5/8', ping: 61 },
-      { id: 'mp3', host: 'DakarBeast', ev: 'rally', players: '2/8', ping: 88 },
-      { id: 'mp4', host: 'ApexQueen', ev: 'free', players: '6/8', ping: 35 }
-    ];
-    function renderMpLobby() {
-      const cont = document.getElementById('mp-lobby-list');
-      cont.innerHTML = '';
-      MP_HOSTS.forEach(l => {
-        const ev = EVENTS_CONFIG.find(e => e.id === l.ev) || EVENTS_CONFIG[0];
-        const d = document.createElement('div');
-        d.className = 'mp-item';
-        d.innerHTML = `
-          <div>
-            <div class="mp-host">${l.host}</div>
-            <div class="mp-ev">${ev.name} • ${l.players} • ${l.ping} мс</div>
-          </div>`;
-        const btn = document.createElement('button');
-        btn.className = 'mp-join';
-        btn.textContent = 'ПОДКЛЮЧИТЬСЯ';
-        btn.addEventListener('click', () => {
-          document.getElementById('multiplayer-modal').classList.add('hidden');
-          selectedEventId = l.ev;
-          if (window.game) {
-            window.game.loadCar(selectedCarIdx);
-            window.game.eventManager.setEvent(l.ev);
-            window.game.startRace();
-          }
-        });
-        d.appendChild(btn);
-        cont.appendChild(d);
+    // === REAL WEBSOCKET MULTIPLAYER ===
+    let mpClient = null;
+    let mpRoomCode = null;
+    let mpLocalPlayerId = null;
+    let mpJoined = false;
+
+    function initMultiplayer() {
+      import('./src/multiplayer.js').then(mod => {
+        mpClient = new mod.MultiplayerClient();
+        setupWsHandlers();
+      }).catch(e => console.error('[MP] Load error:', e));
+    }
+
+    function setupWsHandlers() {
+      if (!mpClient) return;
+      mpClient.onMessage = (msg) => {
+        switch (msg.type) {
+          case 'joined':
+            mpLocalPlayerId = msg.playerId;
+            mpJoined = true;
+            mpRoomCode = msg.roomCode;
+            document.getElementById('mp-room-code').textContent = msg.roomCode;
+            document.getElementById('mp-room-code-display').style.display = 'block';
+            document.getElementById('mp-btn-start').classList.remove('hidden');
+            break;
+          case 'update':
+            // Обновление позиции другого игрока
+            const el = document.getElementById('mp-' + msg.playerId + '-pos');
+            if (el) {
+              el.textContent = Math.abs((msg.speed||0)*3.6).toFixed(0) + ' км/ч';
+            }
+            break;
+          case 'error':
+            alert('Ошибка: ' + msg.message);
+            break;
+        }
+      };
+    }
+
+    function sendGameState() {
+      if (!mpClient || !mpJoined || !window.game) return;
+      mpClient.sendState({
+        x: window.game.carPos.x, y: window.game.carPos.y, z: window.game.carPos.z,
+        rotY: window.game.carHeading, speed: window.game.carSpeed, steer: window.game.steerAngle
       });
     }
-    document.getElementById('title-btn-multiplayer').addEventListener('click', () => {
-      if (window.game) window.game.audio.init();
-      renderMpLobby();
-      document.getElementById('multiplayer-modal').classList.remove('hidden');
+
+    document.getElementById('mp-copy-code').addEventListener('click', () => {
+      if (mpRoomCode) {
+        navigator.clipboard.writeText(mpRoomCode);
+        const btn = document.getElementById('mp-copy-code');
+        btn.textContent = 'СКОПИРОВАНО!';
+        setTimeout(() => btn.textContent = 'КОПИРОВАТЬ', 1500);
+      }
     });
-    document.getElementById('mp-btn-close').addEventListener('click', () => {
-      document.getElementById('multiplayer-modal').classList.add('hidden');
-    });
+
     document.getElementById('mp-btn-create').addEventListener('click', () => {
+      const url = document.getElementById('mp-server-url').value.trim();
+      if (!url) { alert('Введите адрес сервера'); return; }
+      if (!mpClient) initMultiplayer();
+      setTimeout(() => { mpClient.connect(url); setTimeout(() => mpClient.createRoom(), 500); }, 100);
+    });
+
+    document.getElementById('mp-btn-join').addEventListener('click', () => {
+      const url = document.getElementById('mp-server-url').value.trim();
+      if (!url) { alert('Введите адрес сервера'); return; }
+      const code = prompt('Введите код комнаты:');
+      if (!code) return;
+      if (!mpClient) initMultiplayer();
+      setTimeout(() => { mpClient.connect(url); setTimeout(() => mpClient.joinRoom(code), 500); }, 100);
+    });
+
+    document.getElementById('mp-btn-start').addEventListener('click', () => {
       document.getElementById('multiplayer-modal').classList.add('hidden');
-      selectedEventId = 'free';
       if (window.game) {
         window.game.loadCar(selectedCarIdx);
         window.game.eventManager.setEvent('free');
         window.game.startRace();
+        setInterval(sendGameState, 50);
       }
+    });
+
+    document.getElementById('title-btn-multiplayer').addEventListener('click', () => {
+      if (window.game) window.game.audio.init();
+      document.getElementById('multiplayer-modal').classList.remove('hidden');
+    });
+
+    document.getElementById('mp-btn-close').addEventListener('click', () => {
+      document.getElementById('multiplayer-modal').classList.add('hidden');
     });
 
     document.getElementById('title-btn-records').addEventListener('click', () => {
