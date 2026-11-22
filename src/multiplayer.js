@@ -26,7 +26,7 @@ export class MultiplayerClient {
   connect(serverUrl) {
     if (this.ws && this.ws.readyState <= 1) return;
     
-    const protocol = serverUrl.includes('https') ? 'wss:' : 'ws:';
+    const protocol = 'wss:';
     const url = `${protocol}//${serverUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/ws`;
     
     this.ws = new WebSocket(url);

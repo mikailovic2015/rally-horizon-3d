@@ -284,7 +284,7 @@ const MATS = {
     color: 0x9fd4ff,
     roughness: 0.04,
     metalness: 0.1,
-    transparent: true,
+    transparent: true, side: THREE.DoubleSide,
     opacity: 0.28,
     transmission: 0.0,
     clearcoat: 1.0,
@@ -381,7 +381,7 @@ const MATS = {
   }),
   shadow: new THREE.MeshBasicMaterial({
     color: 0x000000,
-    transparent: true,
+    transparent: true, side: THREE.DoubleSide,
     opacity: 0.55
   })
 };
@@ -560,7 +560,7 @@ export function buildCar3D(carConfig) {
     roughness: 0.04,
     clearcoat: 1.0,
     clearcoatRoughness: 0.02,
-    transparent: true,
+    transparent: true, side: THREE.DoubleSide,
     opacity: 0.72,
     depthWrite: false,
     side: THREE.DoubleSide
@@ -834,7 +834,7 @@ export function buildCar3D(carConfig) {
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMesh = new THREE.Mesh(
     shadowGeo,
-    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: 0.85, depthWrite: false })
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, side: THREE.DoubleSide, opacity: 0.85, depthWrite: false })
   );
   shadowMesh.position.y = 0.02;
   root.add(shadowMesh);

@@ -1167,11 +1167,6 @@
   <div id="multiplayer-modal" class="hidden">
     <div class="quick-card">
       <h2>МУЛЬТИПЛЕЕР</h2>
-      <div class="set-row" style="margin-bottom:10px;">
-        <span>Сервер:</span>
-        <input type="text" id="mp-server-url" placeholder="rally-horizon-server.onrender.com" 
-               value="rally-horizon-3d.onrender.com" style="flex:1; background:#0a0e14; color:#00f0ff; border:1px solid #00f0ff; padding:6px 10px; border-radius:8px; font-size:12px;">
-      </div>
       <div class="quick-actions" style="margin-bottom:15px;">
         <button class="res-btn primary" id="mp-btn-create">СОЗДАТЬ КОМНАТУ</button>
         <button class="res-btn secondary" id="mp-btn-join">ВОЙТИ ПО КОДУ</button>
@@ -1705,15 +1700,13 @@
     document.getElementById('mp-server-url').value = savedMpServer;
     
     document.getElementById('mp-btn-create').addEventListener('click', () => {
-      const url = document.getElementById('mp-server-url').value.trim();
-      if (!url) { alert('Введите адрес сервера'); return; }
+      const url = "rally-horizon-3d.onrender.com";
       if (!mpClient) initMultiplayer();
       setTimeout(() => { mpClient.connect(url); setTimeout(() => mpClient.createRoom(), 500); }, 100);
     });
 
     document.getElementById('mp-btn-join').addEventListener('click', () => {
-      const url = document.getElementById('mp-server-url').value.trim();
-      if (!url) { alert('Введите адрес сервера'); return; }
+      const url = "rally-horizon-3d.onrender.com";
       const code = prompt('Введите код комнаты (6 символов):');
       if (!code || code.length !== 6) return;
       if (!mpClient) initMultiplayer();
