@@ -1701,8 +1701,8 @@
       localStorage.setItem('mp_default_server', e.target.value);
     });
     // Восстанавливаем сохраненный адрес
-    const savedMpServer = localStorage.getItem('mp_default_server');
-    if (savedMpServer) document.getElementById('mp-server-url').value = savedMpServer;
+    const savedMpServer = localStorage.getItem('mp_default_server') || 'rally-horizon-3d.onrender.com';
+    document.getElementById('mp-server-url').value = savedMpServer;
     
     document.getElementById('mp-btn-create').addEventListener('click', () => {
       const url = document.getElementById('mp-server-url').value.trim();
