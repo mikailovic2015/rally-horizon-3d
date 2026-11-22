@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rally Horizon 3D</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body, html {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #080a0f;
+      color: #fff;
+    }
+    #game-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* --- 1. TITLE / SPLASH SCREEN --- */
+    #title-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 30;
+      background: radial-gradient(circle at 50% 30%, rgba(15, 25, 45, 0.35) 0%, rgba(5, 8, 14, 0.88) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30px 20px;
+      pointer-events: auto;
+      transition: opacity 0.4s ease;
+    }
+    #title-overlay.hidden {
+      display: none;
+    }
+
+    .title-brand {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .title-logo {
+      font-size: clamp(34px, 7vw, 64px);
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00f0ff 0%, #ffffff 50%, #ff0055 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
+    }
+    .title-sub {
+      font-size: clamp(12px, 2.5vw, 16px);
+      letter-spacing: 6px;
+      color: #ffbb00;
+      text-transform: uppercase;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    .title-menu-box {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .title-btn {
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(0, 240, 255, 0.4);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 16px 24px;
+      border-radius: 35px;
+      cursor: pointer;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      transition: all 0.2s ease;
+    }
+    .title-btn.primary {
+      background: linear-gradient(90deg, #ff0055 0%, #ff5500 100%);
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 0 35px rgba(255, 0, 85, 0.8);
+    }
+    .title-btn:hover, .title-btn:active {
+      transform: scale(1.04);
+      border-color: #00f0ff;
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.7);
+    }
+    .title-footer {
+      font-size: 12px;
+      color: #7b889b;
+      letter-spacing: 1px;
+    }
+
+    /* --- 2. GARAGE OVERLAY --- */
+    #garage-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 25;
+      background: radial-gradient(circle at 50% 20%, rgba(20, 30, 48, 0.45) 0%, rgba(8, 12, 18, 0.88) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 24px;
+      pointer-events: auto;
+    }
+    #garage-overlay.hidden {
+      display: none;
+    }
+
+    .garage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .game-logo-sm {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #00f0ff, #ff0055);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .badge {
+      background: rgba(0, 240, 255, 0.2);
+      border: 1px solid #00f0ff;
+      color: #00f0ff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .garage-center {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .car-nav-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 32px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .car-nav-btn:hover, .car-nav-btn:active {
+      background: #00f0ff;
+      color: #000;
+      border-color: #00f0ff;
+      transform: scale(1.1);
+    }
+
+    .car-card {
+      background: rgba(15, 20, 28, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 16px 20px;
+      width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .car-card h2 {
+      font-size: 21px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .car-card .car-type {
+      font-size: 12px;
+      color: #00f0ff;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .car-desc {
+      font-size: 12px;
+      color: #b0bac8;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .stat-bar-bg {
+      width: 140px;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00f0ff, #00ff88);
+      border-radius: 4px;
+    }
+
+    .event-selector-box {
+      background: rgba(15, 20, 28, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 14px 18px;
+      width: 340px;
+    }
+    .event-selector-box h3 {
+      font-size: 13px;
+      color: #8899aa;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .event-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .event-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 9px 12px;
+      text-align: left;
+      cursor: pointer;
+      color: #fff;
+      transition: all 0.2s;
+    }
+    .event-btn.active {
+      border-color: #ff0055;
+      background: rgba(255, 0, 85, 0.22);
+    }
+    .event-btn .ev-title {
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .event-btn .ev-tag {
+      font-size: 10px;
+      color: #ffaa00;
+    }
+    .event-btn .ev-record {
+      font-size: 11px;
+      color: #00f0ff;
+      margin-top: 3px;
+    }
+
+    .garage-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding-bottom: 8px;
+    }
+    .start-btn {
+      background: linear-gradient(90deg, #ff0055, #ff5500);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px 52px;
+      border-radius: 35px;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.7);
+      transition: all 0.2s;
+    }
+    .start-btn:hover, .start-btn:active {
+      transform: scale(1.05);
+      box-shadow: 0 0 40px rgba(255, 0, 85, 1);
+    }
+    .back-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 14px 22px;
+      border-radius: 35px;
+      cursor: pointer;
+    }
+
+    /* --- 3. IN-GAME HUD --- */
+    #hud-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #hud-overlay.hidden {
+      display: none;
+    }
+
+    .hud-top-bar {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hud-event-info {
+      background: rgba(10, 16, 26, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      gap: 16px;
+    }
+    #hud-drift-score {
+      color: #00ffcc;
+      display: none;
+    }
+
+    .hud-buttons {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .hud-icon-btn {
+      background: rgba(10, 16, 26, 0.75);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 7px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+    }
+    .hud-icon-btn:hover, .hud-icon-btn:active {
+      background: #00f0ff;
+      color: #000;
+    }
+
+    .toast {
+      position: absolute;
+      top: 75px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: rgba(10, 20, 32, 0.92);
+      border: 2px solid #00f0ff;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+      padding: 9px 26px;
+      border-radius: 25px;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+    .toast.drift {
+      border-color: #a800ff;
+      color: #00ffff;
+      box-shadow: 0 0 30px rgba(168, 0, 255, 0.8);
+    }
+    .toast.stunt {
+      border-color: #ffaa00;
+      color: #ffea00;
+    }
+    .toast.finish {
+      border-color: #00ff66;
+      color: #00ff66;
+    }
+
+    /* Radar Minimap placed at TOP-LEFT to free up bottom for the large steering wheel */
+    .minimap-container {
+      position: absolute;
+      top: 65px;
+      left: 20px;
+      width: 120px;
+      height: 120px;
+      pointer-events: none;
+    }
+    #minimap-canvas {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+    }
+
+    /* Speedometer at BOTTOM-CENTER for optimal visibility */
+    .speedometer-container {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 16, 26, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      padding: 10px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 160px;
+      box-shadow: 0 4px 22px rgba(0,0,0,0.7);
+      pointer-events: none;
+    }
+    .speed-digits-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .speed-number {
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+      color: #fff;
+    }
+    .speed-unit {
+      font-size: 13px;
+      font-weight: 800;
+      color: #8899aa;
+    }
+    .gear-indicator {
+      font-size: 15px;
+      font-weight: 900;
+      color: #00f0ff;
+      margin-top: 2px;
+    }
+    .tachometer-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    #hud-rpm-bar {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(90deg, #00f0ff 0%, #ffbb00 70%, #ff0055 100%);
+      transition: width 0.05s ease-out;
+    }
+    .nitro-gauge {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      margin-top: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 240, 255, 0.35);
+    }
+    #hud-nitro-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #0088ff, #00f0ff);
+      box-shadow: 0 0 12px #00f0ff;
+      transition: width 0.05s;
+    }
+
+    /* --- 4. LARGE ERGONOMIC CONTROLS (STEERING WHEEL & SPORT PEDALS) --- */
+    .touch-controls {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .touch-controls.hidden {
+      display: none;
+    }
+
+    /* FULL SIZE RACING STEERING WHEEL (240px) at bottom-left */
+    .steering-wheel-container {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      width: 240px;
+      height: 240px;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    .steering-wheel-svg {
+      width: 100%;
+      height: 100%;
+      transform-origin: 50% 50%;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.85));
+      transition: transform 0.04s linear;
+    }
+
+    /* LARGE SPORT PEDALS at bottom-right */
+    .pedals-group {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      align-items: flex-end;
+      gap: 18px;
+      pointer-events: auto;
+    }
+
+    /* Large Wide Sport Brake Pedal (125px x 130px) */
+    .pedal-brake {
+      width: 125px;
+      height: 130px;
+      background: linear-gradient(180deg, #373f4c 0%, #171a22 100%);
+      border: 3px solid #636f84;
+      border-radius: 18px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.85), inset 0 2px 5px rgba(255,255,255,0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      position: relative;
+      transition: transform 0.08s ease, border-color 0.08s;
+    }
+    .pedal-brake::after {
+      content: '';
+      position: absolute;
+      width: 95px;
+      height: 75px;
+      background: repeating-linear-gradient(0deg, #111 0px, #111 9px, #262930 9px, #262930 18px);
+      border-radius: 10px;
+      border: 1.5px solid #444;
+    }
+    .pedal-brake.pressed {
+      transform: perspective(300px) rotateX(15deg) translateY(6px) scale(0.96);
+      border-color: #ff3333;
+      box-shadow: 0 2px 18px rgba(255, 50, 50, 0.7);
+    }
+    .pedal-label {
+      position: absolute;
+      bottom: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      color: #b0c0d0;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      z-index: 2;
+    }
+
+    /* Large Tall Sport Gas Pedal (96px x 185px) */
+    .pedal-gas {
+      width: 96px;
+      height: 185px;
+      background: linear-gradient(180deg, #424b5a 0%, #1a1e28 100%);
+      border: 3px solid #738096;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.85), inset 0 3px 6px rgba(255,255,255,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 14px 0 24px 0;
+      cursor: pointer;
+      touch-action: none;
+      position: relative;
+      transition: transform 0.08s ease, border-color 0.08s;
+    }
+    .gas-grip-rib {
+      width: 65px;
+      height: 10px;
+      background: #111;
+      border-radius: 5px;
+      box-shadow: inset 0 1px 3px #000;
+    }
+    .pedal-gas.pressed {
+      transform: perspective(300px) rotateX(18deg) translateY(7px) scale(0.96);
+      border-color: #00ff88;
+      box-shadow: 0 2px 22px rgba(0, 255, 136, 0.8);
+    }
+
+    /* LARGE ACTION BUTTONS (NITRO & DRIFT) (94px x 94px) */
+    .actions-group {
+      position: absolute;
+      bottom: 220px;
+      right: 24px;
+      display: flex;
+      gap: 18px;
+      pointer-events: auto;
+    }
+    .action-badge {
+      width: 94px;
+      height: 94px;
+      border-radius: 50%;
+      background: rgba(16, 24, 38, 0.88);
+      backdrop-filter: blur(10px);
+      border: 3px solid rgba(255, 255, 255, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+      cursor: pointer;
+      touch-action: none;
+      transition: all 0.1s;
+    }
+    .action-badge svg {
+      width: 58px;
+      height: 58px;
+    }
+    .action-badge.nitro-badge {
+      border-color: rgba(0, 240, 255, 0.7);
+    }
+    .action-badge.nitro-badge.pressed {
+      border-color: #00f0ff;
+      background: rgba(0, 240, 255, 0.45);
+      transform: scale(0.93);
+      box-shadow: 0 0 30px #00f0ff;
+    }
+    .action-badge.drift-badge {
+      border-color: rgba(180, 0, 255, 0.7);
+    }
+    .action-badge.drift-badge.pressed {
+      border-color: #b400ff;
+      background: rgba(180, 0, 255, 0.45);
+      transform: scale(0.93);
+      box-shadow: 0 0 30px #b400ff;
+    }
+
+    @media (max-width: 820px) {
+      .steering-wheel-container {
+        width: 195px;
+        height: 195px;
+        bottom: 18px;
+        left: 18px;
+      }
+      .pedal-gas { width: 80px; height: 160px; }
+      .pedal-brake { width: 105px; height: 110px; }
+      .actions-group {
+        bottom: 185px;
+        right: 18px;
+        gap: 12px;
+      }
+      .action-badge { width: 80px; height: 80px; }
+      .action-badge svg { width: 48px; height: 48px; }
+      .garage-center {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .car-card, .event-selector-box {
+        width: 100%;
+        max-width: 330px;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D WebGL Canvas -->
+  <div id="game-container"></div>
+
+  <!-- 1. TITLE / SPLASH SCREEN (НАЧАЛЬНАЯ ЗАСТАВКА) -->
+  <div id="title-overlay">
+    <div class="title-brand">
+      <div class="title-logo">Rally Horizon</div>
+      <div class="title-sub">Festival Speed & Drift 3D</div>
+    </div>
+
+    <div class="title-menu-box">
+      <button class="title-btn primary" id="title-btn-play">
+        <span>🏁</span> БЫСТРЫЙ СТАРТ
+      </button>
+      <button class="title-btn" id="title-btn-garage">
+        <span>🚗</span> ГАРАЖ И МАШИНЫ
+      </button>
+      <button class="title-btn" id="title-btn-records">
+        <span>🏆</span> РЕКОРДЫ ТРАССЫ
+      </button>
+    </div>
+
+    <div class="title-footer">
+      RALLY HORIZON • THREE.JS WEBGL • 60 FPS
+    </div>
+  </div>
+
+  <!-- 2. GARAGE OVERLAY -->
+  <div id="garage-overlay" class="hidden">
+    <div class="garage-header">
+      <div class="game-logo-sm">Rally Horizon 3D</div>
+      <div class="badge">FESTIVAL GARAGE</div>
+    </div>
+
+    <div class="garage-center">
+      <button class="car-nav-btn" id="btn-prev-car">‹</button>
+
+      <!-- Active Car Specs Card -->
+      <div class="car-card">
+        <h2 id="card-car-name">Apex Horizon GT</h2>
+        <div class="car-type" id="card-car-type">Hypercar • 275 км/ч</div>
+        <p class="car-desc" id="card-car-desc">Аэродинамичный гиперкар со скошенным носом и антикрылом.</p>
+        
+        <div class="stat-row">
+          <span>СКОРОСТЬ</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-speed" style="width: 97%;"></div></div>
+        </div>
+        <div class="stat-row">
+          <span>РАЗГОН</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-accel" style="width: 90%;"></div></div>
+        </div>
+        <div class="stat-row">
+          <span>УПРАВЛЕНИЕ</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-handling" style="width: 94%;"></div></div>
+        </div>
+        <div class="stat-row">
+          <span>ДРИФТ</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-drift" style="width: 70%;"></div></div>
+        </div>
+        <div class="stat-row">
+          <span>ВНЕДОРОЖЬЕ</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-offroad" style="width: 45%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Mode / Event Selector -->
+      <div class="event-selector-box">
+        <h3>Выбор режима / события</h3>
+        <div class="event-list" id="event-buttons-container"></div>
+      </div>
+
+      <button class="car-nav-btn" id="btn-next-car">›</button>
+    </div>
+
+    <div class="garage-bottom">
+      <button class="back-btn" id="btn-garage-back">‹ НА ГЛАВНУЮ</button>
+      <button class="start-btn" id="btn-start-race">В ЗАЕЗД (START)</button>
+    </div>
+  </div>
+
+  <!-- 3. IN-GAME HUD -->
+  <div id="hud-overlay" class="hidden">
+    <div class="hud-top-bar">
+      <div class="hud-event-info">
+        <span id="hud-progress">КРУГ 1/2 • КП 0/9</span>
+        <span id="hud-timer">⏱️ 0.0с</span>
+        <span id="hud-drift-score">SCORE: 0</span>
+      </div>
+      <div class="hud-buttons">
+        <button class="hud-icon-btn" id="hud-btn-cam">📷 Камера [C]</button>
+        <button class="hud-icon-btn" id="hud-btn-reset">↺ Сброс [R]</button>
+        <button class="hud-icon-btn" id="hud-btn-garage">Гараж [G]</button>
+      </div>
+    </div>
+
+    <div class="toast" id="hud-toast">ЧЕКПОИНТ 1/9</div>
+
+    <!-- Minimap Radar (Top-Left) -->
+    <div class="minimap-container">
+      <canvas id="minimap-canvas" width="120" height="120"></canvas>
+    </div>
+
+    <!-- Speedometer (Bottom-Center) -->
+    <div class="speedometer-container">
+      <div class="speed-digits-row">
+        <span class="speed-number" id="hud-speed">0</span>
+        <span class="speed-unit">KM/H</span>
+      </div>
+      <div class="gear-indicator">GEAR <span id="hud-gear">1</span></div>
+      <div class="tachometer-bar">
+        <div id="hud-rpm-bar"></div>
+      </div>
+      <div class="nitro-gauge">
+        <div id="hud-nitro-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. LARGE VEHICLE CONTROLS (FULL SIZE RACING STEERING WHEEL & PEDALS) -->
+  <div class="touch-controls hidden" id="touch-layer">
+    <!-- Big 240px Interactive Racing Steering Wheel (Bottom-Left) -->
+    <div class="steering-wheel-container" id="steering-wheel-box">
+      <svg class="steering-wheel-svg" id="steering-wheel-visual" viewBox="0 0 200 200">
+        <!-- Outer Leather/Carbon Grip Rim -->
+        <circle cx="100" cy="100" r="88" fill="none" stroke="#1c1f26" stroke-width="22" />
+        <circle cx="100" cy="100" r="98" fill="none" stroke="#353b47" stroke-width="2" />
+        <circle cx="100" cy="100" r="77" fill="none" stroke="#0e1117" stroke-width="2" />
+
+        <!-- Red 12-o'clock centering marker -->
+        <path d="M 94 3 A 97 97 0 0 1 106 3 L 105 23 A 77 77 0 0 0 95 23 Z" fill="#ff0033" />
+
+        <!-- 3 Brushed Aluminum / Carbon Spokes -->
+        <!-- Left Spoke -->
+        <path d="M 30 92 L 78 96 L 78 114 L 30 110 Z" fill="#444b58" stroke="#636e82" stroke-width="1.5" />
+        <!-- Right Spoke -->
+        <path d="M 170 92 L 122 96 L 122 114 L 170 110 Z" fill="#444b58" stroke="#636e82" stroke-width="1.5" />
+        <!-- Bottom Vertical Spoke -->
+        <path d="M 92 122 L 95 174 L 105 174 L 108 122 Z" fill="#444b58" stroke="#636e82" stroke-width="1.5" />
+
+        <!-- Center Horn Cap -->
+        <circle cx="100" cy="100" r="28" fill="#141720" stroke="#00f0ff" stroke-width="3" />
+        <circle cx="100" cy="100" r="22" fill="#0b0e14" />
+        <!-- Horizon Emblem Crown -->
+        <path d="M 88 106 L 93 94 L 100 101 L 107 94 L 112 106 Z" fill="#00f0ff" />
+      </svg>
+    </div>
+
+    <!-- Big Action Buttons (Nitro NOS Bottle & Drift Car) -->
+    <div class="actions-group">
+      <!-- Drift Button (Silhouette of drifting car with tire marks & smoke) -->
+      <div class="action-badge drift-badge" id="btn-drift" title="Дрифт / Ручник">
+        <svg viewBox="0 0 64 64">
+          <!-- Skid marks on asphalt -->
+          <path d="M 8 50 Q 22 45 44 48" fill="none" stroke="#888" stroke-width="3.5" stroke-linecap="round" />
+          <path d="M 14 54 Q 28 49 50 52" fill="none" stroke="#888" stroke-width="3.5" stroke-linecap="round" />
+          <!-- Drifting car body tilted -->
+          <g transform="translate(14, 18) rotate(-16)">
+            <path d="M 2 18 L 8 8 L 24 8 L 34 18 L 38 22 L 0 22 Z" fill="#d900ff" />
+            <path d="M 10 16 L 13 10 L 22 10 L 25 16 Z" fill="#00ffff" />
+            <circle cx="7" cy="22" r="5" fill="#111" stroke="#ccc" stroke-width="1.5" />
+            <circle cx="30" cy="22" r="5" fill="#111" stroke="#ccc" stroke-width="1.5" />
+          </g>
+          <!-- Smoke puffs -->
+          <circle cx="12" cy="42" r="4.5" fill="rgba(255,255,255,0.7)" />
+          <circle cx="17" cy="38" r="6.5" fill="rgba(255,255,255,0.85)" />
+        </svg>
+      </div>
+
+      <!-- Nitro Button (Blue NOS Nitrous Oxide Bottle with Gauge & Flame) -->
+      <div class="action-badge nitro-badge" id="btn-nitro" title="Закись Азота">
+        <svg viewBox="0 0 64 64">
+          <!-- Blue NOS Tank Body -->
+          <rect x="22" y="20" width="20" height="34" rx="7" fill="#0077ff" stroke="#00f0ff" stroke-width="1.5" />
+          <!-- NOS Text on bottle -->
+          <text x="32" y="42" fill="#ffffff" font-size="9.5" font-weight="900" text-anchor="middle" font-family="sans-serif">NOS</text>
+          <!-- Silver Valve Neck & Knob -->
+          <rect x="28" y="14" width="8" height="6" fill="#cccccc" />
+          <path d="M 26 12 L 38 12 L 35 15 L 29 15 Z" fill="#ffffff" />
+          <circle cx="37" cy="18" r="3" fill="#ffffff" stroke="#333" stroke-width="1" />
+          <!-- Cyan Nitro Purge Flame -->
+          <path d="M 32 8 Q 28 3 32 0 Q 36 3 32 8" fill="#00f0ff" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Large Sport Pedals (Bottom-Right) -->
+    <div class="pedals-group">
+      <!-- Big Brake Pedal (125px x 130px) -->
+      <div class="pedal-brake" id="pedal-brake">
+        <span class="pedal-label">ТОРМОЗ</span>
+      </div>
+
+      <!-- Big Gas Pedal (96px x 185px) -->
+      <div class="pedal-gas" id="pedal-gas">
+        <div class="gas-grip-rib"></div>
+        <div class="gas-grip-rib"></div>
+        <div class="gas-grip-rib"></div>
+        <div class="gas-grip-rib"></div>
+        <div class="gas-grip-rib"></div>
+        <span class="pedal-label">ГАЗ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script type="module">
+    import { CARS_DATA } from './src/cars.js';
+    import { EVENTS_CONFIG } from './src/events.js';
+    import { RallyGame, initGame } from './src/main.js';
+
+    let selectedCarIdx = 0;
+    let selectedEventId = 'free';
+
+    function updateGarageUI() {
+      const car = CARS_DATA[selectedCarIdx];
+      document.getElementById('card-car-name').textContent = car.name;
+      document.getElementById('card-car-type').textContent = `${car.type} • ${car.specs.speed}`;
+      document.getElementById('card-car-desc').textContent = car.description;
+
+      document.getElementById('bar-speed').style.width = `${(car.topSpeed / 275) * 100}%`;
+      document.getElementById('bar-accel').style.width = `${car.acceleration}%`;
+      document.getElementById('bar-handling').style.width = `${car.handling}%`;
+      document.getElementById('bar-drift').style.width = `${car.driftFactor}%`;
+      document.getElementById('bar-offroad').style.width = `${car.offroadGrip}%`;
+
+      if (window.game) {
+        window.game.loadCar(selectedCarIdx);
+      }
+    }
+
+    function renderEventsList() {
+      const cont = document.getElementById('event-buttons-container');
+      cont.innerHTML = '';
+
+      EVENTS_CONFIG.forEach(ev => {
+        const btn = document.createElement('div');
+        btn.className = `event-btn ${ev.id === selectedEventId ? 'active' : ''}`;
+        
+        let recordText = '';
+        if (window.game && window.game.eventManager) {
+          const rec = window.game.eventManager.getBestRecord(ev.id);
+          if (rec) recordText = ev.id === 'drift' ? `Рекорд: ${rec} PTS` : `Рекорд: ${rec}с`;
+        }
+
+        btn.innerHTML = `
+          <div class="ev-title">
+            <span>${ev.name}</span>
+            <span class="ev-tag">${ev.tag}</span>
+          </div>
+          ${recordText ? `<div class="ev-record">⭐ ${recordText}</div>` : ''}
+        `;
+
+        btn.addEventListener('click', () => {
+          selectedEventId = ev.id;
+          if (window.game) {
+            window.game.eventManager.setEvent(ev.id);
+          }
+          renderEventsList();
+        });
+
+        cont.appendChild(btn);
+      });
+    }
+
+    // Title Screen buttons
+    document.getElementById('title-btn-play').addEventListener('click', () => {
+      if (window.game) {
+        window.game.eventManager.setEvent(selectedEventId);
+        window.game.startRace();
+      }
+    });
+
+    document.getElementById('title-btn-garage').addEventListener('click', () => {
+      if (window.game) {
+        window.game.audio.init();
+        window.game.setGameState('garage');
+        renderEventsList();
+      }
+    });
+
+    document.getElementById('title-btn-records').addEventListener('click', () => {
+      if (window.game) {
+        window.game.audio.init();
+        const records = window.game.eventManager.records || {};
+        let msg = '🏆 ТАБЛИЦА РЕКОРДОВ:\n';
+        EVENTS_CONFIG.forEach(ev => {
+          const r = records[ev.id];
+          msg += `• ${ev.name}: ${r ? (ev.id === 'drift' ? r + ' PTS' : r + 'с') : 'Пока нет'}\n`;
+        });
+        alert(msg);
+      }
+    });
+
+    // Garage buttons
+    document.getElementById('btn-garage-back').addEventListener('click', () => {
+      if (window.game) window.game.setGameState('title');
+    });
+
+    document.getElementById('btn-prev-car').addEventListener('click', () => {
+      selectedCarIdx = (selectedCarIdx - 1 + CARS_DATA.length) % CARS_DATA.length;
+      updateGarageUI();
+    });
+    document.getElementById('btn-next-car').addEventListener('click', () => {
+      selectedCarIdx = (selectedCarIdx + 1) % CARS_DATA.length;
+      updateGarageUI();
+    });
+
+    document.getElementById('btn-start-race').addEventListener('click', () => {
+      if (window.game) {
+        window.game.eventManager.setEvent(selectedEventId);
+        window.game.startRace();
+      }
+    });
+
+    // In-Game HUD buttons
+    document.getElementById('hud-btn-cam').addEventListener('click', () => window.game && window.game.toggleCamera());
+    document.getElementById('hud-btn-reset').addEventListener('click', () => window.game && window.game.respawnCar());
+    document.getElementById('hud-btn-garage').addEventListener('click', () => {
+      if (window.game) {
+        window.game.setGameState('garage');
+        renderEventsList();
+      }
+    });
+
+    // --- INTERACTIVE STEERING WHEEL LOGIC (240px) ---
+    const wheelBox = document.getElementById('steering-wheel-box');
+    const wheelSvg = document.getElementById('steering-wheel-visual');
+    let isSteering = false;
+    let wheelAngle = 0;
+
+    function updateWheelFromCoords(clientX, clientY) {
+      const rect = wheelBox.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+
+      // Calculate angle from 12 o'clock (straight up)
+      let rad = Math.atan2(dx, -dy); // rad > 0 when turning RIGHT (clockwise)
+      let deg = rad * (180 / Math.PI);
+
+      // Clamp between -75° and +75°
+      deg = Math.max(-75, Math.min(75, deg));
+      wheelAngle = deg;
+      wheelSvg.style.transform = `rotate(${wheelAngle}deg)`;
+
+      // Pass input.steer: RIGHT is positive (+1.0), LEFT is negative (-1.0)
+      if (window.game) {
+        window.game.input.steer = wheelAngle / 75;
+      }
+    }
+
+    function resetWheel() {
+      isSteering = false;
+      wheelAngle = 0;
+      wheelSvg.style.transform = 'rotate(0deg)';
+      if (window.game) {
+        window.game.input.steer = 0;
+      }
+    }
+
+    wheelBox.addEventListener('pointerdown', (e) => {
+      isSteering = true;
+      wheelBox.setPointerCapture(e.pointerId);
+      if (window.game) window.game.audio.init();
+      updateWheelFromCoords(e.clientX, e.clientY);
+    });
+
+    wheelBox.addEventListener('pointermove', (e) => {
+      if (!isSteering) return;
+      updateWheelFromCoords(e.clientX, e.clientY);
+    });
+
+    wheelBox.addEventListener('pointerup', () => resetWheel());
+    wheelBox.addEventListener('pointercancel', () => resetWheel());
+
+    // --- PEDALS & ACTION BUTTONS BINDING ---
+    function bindPedal(id, onDown, onUp) {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const down = (e) => {
+        e.preventDefault();
+        el.classList.add('pressed');
+        if (window.game) window.game.audio.init();
+        onDown();
+      };
+      const up = (e) => {
+        e.preventDefault();
+        el.classList.remove('pressed');
+        onUp();
+      };
+
+      el.addEventListener('pointerdown', down);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+    }
+
+    bindPedal('pedal-gas', () => { if (window.game) window.game.input.throttle = 1; }, () => { if (window.game) window.game.input.throttle = 0; });
+    bindPedal('pedal-brake', () => { if (window.game) window.game.input.brake = 1; }, () => { if (window.game) window.game.input.brake = 0; });
+    bindPedal('btn-drift', () => { if (window.game) window.game.input.handbrake = true; }, () => { if (window.game) window.game.input.handbrake = false; });
+    bindPedal('btn-nitro', () => { if (window.game) window.game.input.nitro = true; }, () => { if (window.game) window.game.input.nitro = false; });
+
+    // Initial UI load
+    function initUI() {
+      if (window.game) {
+        updateGarageUI();
+        renderEventsList();
+      } else {
+        setTimeout(initUI, 30);
+      }
+    }
+    initUI();
+  </script>
+</body>
+</html>
