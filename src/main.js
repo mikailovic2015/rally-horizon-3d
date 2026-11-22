@@ -581,21 +581,24 @@ export class RallyGame {
       if (bushHit) this.audio.playCheckpoint();
     }
     if (this.world.checkTreeCollision) {
-      for (let iter = 0; iter < 3; iter++) {
-        const treeHit = this.world.checkTreeCollision(this.carPos, 1.6);
-        if (!treeHit || !treeHit.collided) break;
-        this.carPos.x = treeHit.treeX + treeHit.nx * (treeHit.overlap + 1.7);
-        this.carPos.z = treeHit.treeZ + treeHit.nz * (treeHit.overlap + 1.7);
+      // Выеживаем автомобиль каждый кадр, чтобы не застревать в текстурах деревьев
+      let hits = 0;
+      while (hits < 8) {
+        const hit = this.world.checkTreeCollision(this.carPos, 1.6);
+        if (!hit || !hit.collided) break;
+        this.carPos.x = hit.treeX + hit.nx * (hit.overlap + 1.75);
+        this.carPos.z = hit.treeZ + hit.nz * (hit.overlap + 1.75);
         const now2 = this.clock.getElapsedTime();
-        if (Math.abs(this.carSpeed) > 6 && (now2 - this.lastCrashTime) > this.crashCooldown) {
+        if (Math.abs(this.carSpeed) > 8 && (now2 - this.lastCrashTime) > this.crashCooldown) {
           this.lastCrashTime = now2;
-          this.carSpeed *= 0.35;
+          this.carSpeed *= 0.30;
           if (this.car3D && this.car3D.applyDent) this.car3D.applyDent();
           this.audio.playBeep(false);
-          this.showNotification('Вмятина кузова! Дерево!', 'drift');
+          this.showNotification('Вмятина кузова! От удара об дерево!', 'drift');
         } else {
-          this.carSpeed *= 0.9;
+          this.carSpeed *= 0.92;
         }
+        hits++;
       }
     }
     {

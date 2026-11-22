@@ -783,16 +783,28 @@ export class GameWorld {
   // --- COLLISION SYSTEMS ---
 
   checkTreeCollision(carPos, carRadius = 1.6) {
-    if (this.mapMode === 'testdrive' && this.testdriveSolids) {
-      for (let i = 0; i < this.testdriveSolids.length; i++) {
-        const t = this.testdriveSolids[i];
-        const dx = carPos.x - t.x;
-        const dz = carPos.z - t.z;
-        const minDist = t.radius + carRadius;
-        const distSq = dx * dx + dz * dz;
-        if (distSq < minDist * minDist) {
-          const dist = Math.sqrt(distSq) || 0.001;
-          return { collided: true, treeX: t.x, treeZ: t.z, overlap: minDist - dist, nx: dx / dist, nz: dz / dist };
+    if (this.mapMode === 'testdrive') {
+      // Hangar walls (60x40 at 0, 620)
+      const hW = 30 + carRadius, hD = 20 + carRadius;
+      if (Math.abs(carPos.x) < hW && Math.abs(carPos.z - 620) < hD) {
+        const dxL = carPos.x - (-hW), dxR = hW - carPos.x;
+        const dzF = carPos.z - (620 - hD), dzB = (620 + hD) - carPos.z;
+        const minV = Math.min(dxL, dxR, dzF, dzB);
+        if (minV === dxL) return { collided: true, nx: -1, nz: 0, overlap: dxL };
+        if (minV === dxR) return { collided: true, nx: 1, nz: 0, overlap: dxR };
+        if (minV === dzF) return { collided: true, nx: 0, nz: -1, overlap: dzF };
+        return { collided: true, nx: 0, nz: 1, overlap: dzB };
+      }
+      if (this.testdriveSolids) {
+        for (let i = 0; i < this.testdriveSolids.length; i++) {
+          const t = this.testdriveSolids[i];
+          const dx = carPos.x - t.x, dz = carPos.z - t.z;
+          const minDist = t.radius + carRadius;
+          const distSq = dx * dx + dz * dz;
+          if (distSq < minDist * minDist) {
+            const dist = Math.sqrt(distSq) || 0.001;
+            return { collided: true, treeX: t.x, treeZ: t.z, overlap: minDist - dist, nx: dx / dist, nz: dz / dist };
+          }
         }
       }
       return null;
