@@ -913,6 +913,147 @@
       color: #ffd75e;
       font-weight: 900;
     }
+    .quick-card, .set-row {
+      box-sizing: border-box;
+    }
+    #quick-select-modal, #settings-modal, #multiplayer-modal {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 40;
+      background: rgba(5, 8, 14, 0.88);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #quick-select-modal.hidden, #settings-modal.hidden, #multiplayer-modal.hidden { display: none; }
+    .quick-card {
+      background: rgba(18, 24, 38, 0.96);
+      border: 2px solid #00f0ff;
+      box-shadow: 0 0 40px rgba(0,240,255,0.5);
+      border-radius: 22px;
+      padding: 26px 28px;
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      color: #fff;
+    }
+    .quick-card h2 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-align: center;
+      background: linear-gradient(90deg, #00f0ff, #ff0055);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .quick-sub { text-align: center; font-weight: 900; font-size: 17px; }
+    .quick-sub.small { font-size: 13px; color: #9fb0c8; }
+    .quick-list { display: flex; flex-direction: column; gap: 8px; }
+    .quick-item {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+    }
+    .quick-item.active {
+      border-color: #00f0ff;
+      background: rgba(0,240,255,0.18);
+      box-shadow: 0 0 18px rgba(0,240,255,0.45);
+    }
+    .quick-item .qi-name { font-weight: 900; font-size: 15px; }
+    .quick-item .qi-tag { font-size: 11px; color: #9fb0c8; }
+    .quick-actions { display: flex; gap: 10px; justify-content: center; }
+    .set-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .set-ctrl { display: flex; align-items: center; gap: 8px; }
+    .set-ctrl input { width: 130px; accent-color: #00f0ff; }
+    .set-toggle {
+      background: rgba(0,240,255,0.18);
+      border: 1.5px solid #00f0ff;
+      color: #00f0ff;
+      font-weight: 900;
+      padding: 8px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    #set-quality {
+      background: #10151e;
+      color: #fff;
+      border: 1px solid #00f0ff;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-weight: 800;
+    }
+    .mp-list { display: flex; flex-direction: column; gap: 8px; }
+    .mp-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+    }
+    .mp-item .mp-host { flex: 1; font-weight: 900; font-size: 14px; }
+    .mp-item .mp-ev { font-size: 11px; color: #9fb0c8; }
+    .mp-join {
+      background: linear-gradient(90deg, #00ff88, #00c853);
+      border: none; color: #04210f;
+      font-weight: 900; font-size: 12px;
+      padding: 9px 12px; border-radius: 12px; cursor: pointer;
+    }
+    .mp-note { font-size: 12px; color: #8fa0b8; text-align: center; }
+    .res-reward {
+      margin-top: 4px;
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffd75e;
+    }
+    .bar-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 13px;
+      font-weight: 800;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      width: 100%;
+    }
+    .bar-stat-row .v { color: #00f0ff; }
+    .stat-values-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .bar-stat-row b {
+      min-width: 58px;
+      text-align: right;
+      display: inline-block;
+      color: #00f0ff;
+      font-weight: 900;
+    }
+    .bar-stat-hint {
+      font-size: 11px;
+      color: #8fa0b8;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
   </style>
 
   <script type="importmap">
@@ -937,6 +1078,7 @@
       <div class="res-event" id="res-event">Horizon Grand Prix</div>
       <div class="res-stars" id="res-stars">⭐⭐⭐</div>
       <div class="res-score" id="res-score">Время: 01:24.5с</div>
+      <div class="res-reward" id="res-reward">🪙 +0 CR</div>
       <div class="res-record-badge" id="res-record-badge">🔥 НОВЫЙ РЕКОРД ТРАССЫ!</div>
       <div class="res-btn-row">
         <button class="res-btn secondary" id="btn-results-garage">В гараж</button>
@@ -954,10 +1096,16 @@
 
     <div class="title-menu-box">
       <button class="title-btn primary" id="title-btn-play">
-        <span>🏁</span> БЫСТРЫЙ СТАРТ
+        <span>🏁</span> БЫСТРАЯ ЕЗДА
       </button>
       <button class="title-btn" id="title-btn-garage">
         <span>🚗</span> ГАРАЖ И МАШИНЫ
+      </button>
+      <button class="title-btn" id="title-btn-multiplayer">
+        <span>👥</span> МУЛЬТИПЛЕЕР
+      </button>
+      <button class="title-btn" id="title-btn-settings">
+        <span>⚙️</span> НАСТРОЙКИ
       </button>
       <button class="title-btn" id="title-btn-records">
         <span>🏆</span> РЕКОРДЫ ТРАССЫ
@@ -966,6 +1114,65 @@
 
     <div class="title-footer">
       RALLY HORIZON • THREE.JS WEBGL • 60 FPS
+    </div>
+  </div>
+
+  <!-- QUICK START: выбор события -->
+  <div id="quick-select-modal" class="hidden">
+    <div class="quick-card">
+      <h2>БЫСТРАЯ ЕЗДА</h2>
+      <div class="quick-sub" id="quick-car-name">Rally Beast 4x4</div>
+      <div class="quick-sub small" id="quick-car-status"></div>
+      <div class="quick-list" id="quick-event-list"></div>
+      <div class="quick-actions">
+        <button class="res-btn secondary" id="quick-btn-close">Закрыть</button>
+        <button class="res-btn primary" id="quick-btn-start">СТАРТ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="hidden">
+    <div class="quick-card">
+      <h2>НАСТРОЙКИ</h2>
+      <div class="set-row">
+        <span>Чувствительность руля</span>
+        <div class="set-ctrl">
+          <input type="range" id="set-sensitivity" min="0.3" max="1.5" step="0.05" value="0.8">
+          <b id="set-sensitivity-val">0.8</b>
+        </div>
+      </div>
+      <div class="set-row">
+        <span>Звук</span>
+        <button class="set-toggle" id="set-sound">ВКЛ</button>
+      </div>
+      <div class="set-row">
+        <span>Графика</span>
+        <select id="set-quality">
+          <option value="low">Низкая (планшет)</option>
+          <option value="high" selected>Высокая</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <span>Управление</span>
+        <button class="set-toggle" id="set-controls">Руль / Стрелки</button>
+      </div>
+      <div class="quick-actions">
+        <button class="res-btn primary" id="settings-btn-close">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MULTIPLAYER MODAL -->
+  <div id="multiplayer-modal" class="hidden">
+    <div class="quick-card">
+      <h2>МУЛЬТИПЛЕЕР</h2>
+      <div class="mp-list" id="mp-lobby-list"></div>
+      <p class="mp-note">Игроки-боты с никами. Создано 4 лобби с разными событиями. Нажми «ПОДКЛЮЧИТЬСЯ».</p>
+      <div class="quick-actions">
+        <button class="res-btn secondary" id="mp-btn-close">Закрыть</button>
+        <button class="res-btn primary" id="mp-btn-create">СВОЁ ЛОББИ</button>
+      </div>
     </div>
   </div>
 
@@ -988,25 +1195,45 @@
         <div class="car-type" id="card-car-type">Hypercar • 275 км/ч</div>
         <p class="car-desc" id="card-car-desc">Аэродинамичный гиперкар со скошенным носом и антикрылом.</p>
         
+        <div class="bar-stat-hint">ХАРАКТЕРИСТИКИ / ОЦЕНКА ОТ 100</div>
         <div class="stat-row">
           <span>СКОРОСТЬ</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-speed" style="width: 97%;"></div></div>
+          <b id="val-speed">97</b>
         </div>
         <div class="stat-row">
           <span>РАЗГОН</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-accel" style="width: 90%;"></div></div>
+          <b id="val-accel">90</b>
         </div>
         <div class="stat-row">
           <span>УПРАВЛЕНИЕ</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-handling" style="width: 94%;"></div></div>
+          <b id="val-handling">94</b>
         </div>
         <div class="stat-row">
           <span>ДРИФТ</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-drift" style="width: 70%;"></div></div>
+          <b id="val-drift">70</b>
         </div>
         <div class="stat-row">
           <span>ВНЕДОРОЖЬЕ</span>
           <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-offroad" style="width: 45%;"></div></div>
+          <b id="val-offroad">45</b>
+        </div>
+        <div class="stat-row">
+          <span>ТОРМОЖЕНИЕ</span>
+          <div class="stat-bar-bg"><div class="stat-bar-fill" id="bar-braking" style="width: 88%;"></div></div>
+          <b id="val-braking">88</b>
+        </div>
+        <div class="stat-values-row">
+          <span>МАКС. СКОРОСТЬ</span><span class="v" id="val-topspeed">275 км/ч</span>
+        </div>
+        <div class="stat-values-row">
+          <span>РАЗГОН 0-100</span><span class="v" id="val-accel-sec">2.6 с</span>
+        </div>
+        <div class="stat-values-row">
+          <span>МАССА</span><span class="v" id="val-mass">1200 кг</span>
         </div>
         <div class="car-price-row" id="car-price-row">Бесплатная стартовая машина</div>
         <div class="skin-shop">
@@ -1181,17 +1408,28 @@
         }
       } catch (e) {}
     }
+    function setBar(id, valId, v) {
+      const bar = document.getElementById(id);
+      const val = document.getElementById(valId);
+      if (bar) bar.style.width = `${v}%`;
+      if (val) val.textContent = v;
+    }
     function updateGarageUI() {
       const car = CARS_DATA[selectedCarIdx];
       document.getElementById('card-car-name').textContent = car.name;
       document.getElementById('card-car-type').textContent = `${car.type} • ${car.specs.speed}`;
       document.getElementById('card-car-desc').textContent = car.description;
 
-      document.getElementById('bar-speed').style.width = `${(car.topSpeed / 295) * 100}%`;
-      document.getElementById('bar-accel').style.width = `${car.acceleration}%`;
-      document.getElementById('bar-handling').style.width = `${car.handling}%`;
-      document.getElementById('bar-drift').style.width = `${car.driftFactor}%`;
-      document.getElementById('bar-offroad').style.width = `${car.offroadGrip}%`;
+      setBar('bar-speed', 'val-speed', Math.round((car.topSpeed / 295) * 100));
+      setBar('bar-accel', 'val-accel', car.acceleration);
+      setBar('bar-handling', 'val-handling', car.handling);
+      setBar('bar-drift', 'val-drift', car.driftFactor);
+      setBar('bar-offroad', 'val-offroad', car.offroadGrip);
+      setBar('bar-braking', 'val-braking', car.braking || 85);
+
+      document.getElementById('val-topspeed').textContent = car.topSpeed + ' км/ч';
+      document.getElementById('val-accel-sec').textContent = car.specs.accel || '3.0 с';
+      document.getElementById('val-mass').textContent = car.mass + ' кг';
 
       const owned = isCarOwned(car.id);
       const priceRow = document.getElementById('car-price-row');
@@ -1281,11 +1519,46 @@
     }
 
     // Title Screen buttons
+    let quickEventId = 'free';
+    function renderQuickList() {
+      const cont = document.getElementById('quick-event-list');
+      cont.innerHTML = '';
+      const car = CARS_DATA[selectedCarIdx];
+      EVENTS_CONFIG.forEach(ev => {
+        if (ev.id === 'testdrive') return;
+        const d = document.createElement('div');
+        d.className = 'quick-item' + (ev.id === quickEventId ? ' active' : '');
+        d.innerHTML = `<div class="qi-name">${ev.name}</div><div class="qi-tag">${ev.tag}</div>`;
+        d.addEventListener('click', () => { quickEventId = ev.id; renderQuickList(); });
+        cont.appendChild(d);
+      });
+      document.getElementById('quick-car-name').textContent = car.name;
+      const st = document.getElementById('quick-car-status');
+      st.textContent = isCarOwned(car.id) ? 'В вашем гараже' : `Не куплена • ${car.price.toLocaleString('ru-RU')} CR (будет тест-драйв)`;
+    }
     document.getElementById('title-btn-play').addEventListener('click', () => {
       if (window.game) {
-        window.game.eventManager.setEvent(selectedEventId);
-        window.game.startRace();
+        window.game.audio.init();
+        renderQuickList();
+        document.getElementById('quick-select-modal').classList.remove('hidden');
       }
+    });
+    document.getElementById('quick-btn-close').addEventListener('click', () => {
+      document.getElementById('quick-select-modal').classList.add('hidden');
+    });
+    document.getElementById('quick-btn-start').addEventListener('click', () => {
+      if (!window.game) return;
+      const car = CARS_DATA[selectedCarIdx];
+      document.getElementById('quick-select-modal').classList.add('hidden');
+      if (!isCarOwned(car.id)) {
+        selectedEventId = 'testdrive';
+      } else {
+        selectedEventId = quickEventId;
+      }
+      window.game.loadCar(selectedCarIdx);
+      applyCurrentSkin();
+      window.game.eventManager.setEvent(selectedEventId);
+      window.game.startRace();
     });
 
     document.getElementById('title-btn-garage').addEventListener('click', () => {
@@ -1294,6 +1567,110 @@
         window.game.setGameState('garage');
         updateGarageUI();
         renderEventsList();
+      }
+    });
+
+    const sensInput = document.getElementById('set-sensitivity');
+    const sensVal = document.getElementById('set-sensitivity-val');
+    const soundBtn = document.getElementById('set-sound');
+    const qualitySel = document.getElementById('set-quality');
+    const ctrlBtnSet = document.getElementById('set-controls');
+
+    function syncSettingsUI() {
+      const g = window.game;
+      if (!g) return;
+      sensInput.value = g.settings.sensitivity;
+      sensVal.textContent = Number(g.settings.sensitivity).toFixed(2);
+      soundBtn.textContent = g.settings.sound ? 'ВКЛ' : 'ВЫКЛ';
+      qualitySel.value = g.settings.quality;
+      ctrlBtnSet.textContent = g.controlMode === 'wheel' ? 'Руль / Стрелки' : 'Стрелки / Руль';
+    }
+    function saveSettings() {
+      try { localStorage.setItem('horizon_settings', JSON.stringify(window.game.settings)); } catch (e) {}
+    }
+    document.getElementById('title-btn-settings').addEventListener('click', () => {
+      if (window.game) { window.game.audio.init(); syncSettingsUI(); }
+      document.getElementById('settings-modal').classList.remove('hidden');
+    });
+    document.getElementById('settings-btn-close').addEventListener('click', () => {
+      saveSettings();
+      document.getElementById('settings-modal').classList.add('hidden');
+    });
+    sensInput.addEventListener('input', () => {
+      if (!window.game) return;
+      window.game.settings.sensitivity = parseFloat(sensInput.value);
+      sensVal.textContent = Number(sensInput.value).toFixed(2);
+    });
+    soundBtn.addEventListener('click', () => {
+      if (!window.game) return;
+      window.game.settings.sound = !window.game.settings.sound;
+      window.game.setSound(window.game.settings.sound);
+      soundBtn.textContent = window.game.settings.sound ? 'ВКЛ' : 'ВЫКЛ';
+      saveSettings();
+    });
+    qualitySel.addEventListener('change', () => {
+      if (!window.game) return;
+      window.game.setQuality(qualitySel.value);
+      window.game.settings.quality = qualitySel.value;
+      saveSettings();
+    });
+    ctrlBtnSet.addEventListener('click', () => {
+      if (!window.game) return;
+      const btn = document.getElementById('hud-btn-controls');
+      if (btn) btn.click();
+      ctrlBtnSet.textContent = window.game.controlMode === 'wheel' ? 'Руль / Стрелки' : 'Стрелки / Руль';
+    });
+
+    // --- МУЛЬТИПЛЕЕР ---
+    const MP_HOSTS = [
+      { id: 'mp1', host: 'SpeedyMax#12', ev: 'circuit', players: '3/8', ping: 42 },
+      { id: 'mp2', host: 'DriftKing.RU', ev: 'drift', players: '5/8', ping: 61 },
+      { id: 'mp3', host: 'DakarBeast', ev: 'rally', players: '2/8', ping: 88 },
+      { id: 'mp4', host: 'ApexQueen', ev: 'free', players: '6/8', ping: 35 }
+    ];
+    function renderMpLobby() {
+      const cont = document.getElementById('mp-lobby-list');
+      cont.innerHTML = '';
+      MP_HOSTS.forEach(l => {
+        const ev = EVENTS_CONFIG.find(e => e.id === l.ev) || EVENTS_CONFIG[0];
+        const d = document.createElement('div');
+        d.className = 'mp-item';
+        d.innerHTML = `
+          <div>
+            <div class="mp-host">${l.host}</div>
+            <div class="mp-ev">${ev.name} • ${l.players} • ${l.ping} мс</div>
+          </div>`;
+        const btn = document.createElement('button');
+        btn.className = 'mp-join';
+        btn.textContent = 'ПОДКЛЮЧИТЬСЯ';
+        btn.addEventListener('click', () => {
+          document.getElementById('multiplayer-modal').classList.add('hidden');
+          selectedEventId = l.ev;
+          if (window.game) {
+            window.game.loadCar(selectedCarIdx);
+            window.game.eventManager.setEvent(l.ev);
+            window.game.startRace();
+          }
+        });
+        d.appendChild(btn);
+        cont.appendChild(d);
+      });
+    }
+    document.getElementById('title-btn-multiplayer').addEventListener('click', () => {
+      if (window.game) window.game.audio.init();
+      renderMpLobby();
+      document.getElementById('multiplayer-modal').classList.remove('hidden');
+    });
+    document.getElementById('mp-btn-close').addEventListener('click', () => {
+      document.getElementById('multiplayer-modal').classList.add('hidden');
+    });
+    document.getElementById('mp-btn-create').addEventListener('click', () => {
+      document.getElementById('multiplayer-modal').classList.add('hidden');
+      selectedEventId = 'free';
+      if (window.game) {
+        window.game.loadCar(selectedCarIdx);
+        window.game.eventManager.setEvent('free');
+        window.game.startRace();
       }
     });
 
@@ -1330,8 +1707,6 @@
         spendCredits(car.price);
         buyCar(car.id);
         updateGarageUI();
-      } else {
-        alert('Не хватает кредитов! Проходите гонки и собирайте CR.');
       }
     });
 

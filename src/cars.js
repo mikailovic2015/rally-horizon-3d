@@ -533,27 +533,50 @@ export function buildCar3D(carConfig) {
   const chassisTilt = new THREE.Group();
   root.add(chassisTilt);
 
-  // Гладкая современная краска с лаком
+  const bodyKind = carConfig.body || carConfig.id;
+
+  // Лаковая краска кузова (MeshPhysicalMaterial + clearcoat)
   const bodyPaint = new THREE.MeshPhysicalMaterial({
     color: carConfig.color,
-    metalness: 0.55,
-    roughness: 0.28,
+    metalness: 0.45,
+    roughness: 0.22,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.08
+    clearcoatRoughness: 0.06,
+    envMapIntensity: 1.1
   });
 
   const accentPaint = new THREE.MeshPhysicalMaterial({
     color: carConfig.accentColor,
-    metalness: 0.6,
-    roughness: 0.25,
+    metalness: 0.5,
+    roughness: 0.2,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.1
+    clearcoatRoughness: 0.08
+  });
+
+  // Глянцевое затемнённое остекление — темнее и глянцевее кузова
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0x0d1a26,
+    metalness: 0.35,
+    roughness: 0.04,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.02,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+
+  const trimMat = new THREE.MeshStandardMaterial({
+    color: 0x14161b,
+    metalness: 0.7,
+    roughness: 0.42
   });
 
   const tailMat = MATS.taillightOff.clone();
   const tailMeshes = [];
   const exhaustPoints = [];
 
+  // --- ГАБАРИТЫ ПО ТИПУ КУЗОВА ---
   let wheelRadius = 0.36;
   let wheelWidth = 0.28;
   let trackWidth = 1.68;
@@ -574,400 +597,249 @@ export function buildCar3D(carConfig) {
     groundClearance = 0.24;
   }
 
-  // Shadow plane
-  const shadowGeo = new THREE.PlaneGeometry(trackWidth + 0.6, wheelBase + 1.8);
-  shadowGeo.rotateX(-Math.PI / 2);
-  const shadowMesh = new THREE.Mesh(shadowGeo, MATS.shadow);
-  shadowMesh.position.y = 0.03;
-  root.add(shadowMesh);
-
-  // Add realistic visible cockpit interior under transparent glass
-  const cockpit = createInteriorCockpit(2.0, trackWidth * 0.72, groundClearance);
-  chassisTilt.add(cockpit);
-
-  let mainBodyMesh = null;
-
-  // --- CAR SPECIFIC BODY BUILDERS ---
-  const bodyKind = carConfig.body || carConfig.id;
-  if (bodyKind === 'apex_gt') {
-    // 1. HYPERCAR
-    const profileShape = new THREE.Shape();
-    profileShape.moveTo(-2.25, 0.15);
-    profileShape.lineTo(-2.25, 0.52);
-    profileShape.lineTo(-1.60, 0.62);
-    profileShape.lineTo(-0.70, 0.96);
-    profileShape.lineTo(0.20, 0.96);
-    profileShape.lineTo(1.10, 0.54);
-    profileShape.lineTo(2.20, 0.35);
-    profileShape.lineTo(2.35, 0.14);
-    profileShape.lineTo(2.20, 0.10);
-    profileShape.lineTo(-2.0, 0.10);
-    profileShape.closePath();
-
-    const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
-      depth: 1.62,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: 0.14,
-      bevelThickness: 0.12
-    });
-    bodyExtrude.center();
-    bodyExtrude.rotateY(Math.PI / 2);
-
-    mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
-    mainBodyMesh.position.set(0, groundClearance + 0.5, 0);
-    mainBodyMesh.userData.baseY = groundClearance + 0.5;
-    chassisTilt.add(mainBodyMesh);
-
-    // Flared muscular wheel arches
-    const fArch = createWheelArch(wheelRadius, trackWidth + 0.06, 0.08, bodyPaint);
-    fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
-    const rArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.09, bodyPaint);
-    rArch.position.set(0, groundClearance + wheelRadius, -wheelBase * 0.5);
-    chassisTilt.add(fArch, rArch);
-
-    // Transparent Glass Canopy (windshield, roof, side glass)
-    const canopyShape = new THREE.Shape();
-    canopyShape.moveTo(-1.4, 0.60);
-    canopyShape.lineTo(-0.65, 0.98);
-    canopyShape.lineTo(0.18, 0.98);
-    canopyShape.lineTo(1.05, 0.56);
-    canopyShape.closePath();
-
-    const canopyExtrude = new THREE.ExtrudeGeometry(canopyShape, {
-      depth: 1.30,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.08,
-      bevelThickness: 0.08
-    });
-    canopyExtrude.center();
-    canopyExtrude.rotateY(Math.PI / 2);
-
-    const canopy = new THREE.Mesh(canopyExtrude, MATS.glass);
-    canopy.position.set(0, groundClearance + 0.53, -0.2);
-    chassisTilt.add(canopy);
-
-    // Carbon splitter & skirts
-    const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.05, 0.8), MATS.carbon);
-    splitter.position.set(0, groundClearance + 0.08, 2.15);
-    chassisTilt.add(splitter);
-
-    const skirtL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 2.4), MATS.carbon);
-    skirtL.position.set(-0.85, groundClearance + 0.1, 0);
-    const skirtR = skirtL.clone();
-    skirtR.position.x = 0.85;
-    chassisTilt.add(skirtL, skirtR);
-
-    // GT Wing
-    const pL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.22), MATS.carbon);
-    pL.position.set(-0.55, groundClearance + 0.65, -2.05);
-    const pR = pL.clone();
-    pR.position.x = 0.55;
-    const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.05, 0.48), bodyPaint);
-    wingBlade.position.set(0, groundClearance + 0.85, -2.12);
-    chassisTilt.add(pL, pR, wingBlade);
-
-    // Headlights
-    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.1, 0.16), MATS.headlight);
-    hlL.position.set(-0.64, groundClearance + 0.36, 2.22);
-    const hlR = hlL.clone();
-    hlR.position.x = 0.64;
-    chassisTilt.add(hlL, hlR);
-
-    // Taillight bar
-    const tlBar = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.08, 0.12), tailMat);
-    tlBar.position.set(0, groundClearance + 0.44, -2.28);
-    chassisTilt.add(tlBar);
-    tailMeshes.push(tlBar);
-
-    exhaustPoints.push(new THREE.Vector3(-0.16, groundClearance + 0.26, -2.35));
-    exhaustPoints.push(new THREE.Vector3(0.16, groundClearance + 0.26, -2.35));
-
-  } else if (bodyKind === 'rally_wrc') {
-    // 2. WRC RALLY
-    const profileShape = new THREE.Shape();
-    profileShape.moveTo(-1.95, 0.16);
-    profileShape.lineTo(-1.95, 0.72);
-    profileShape.lineTo(-1.50, 1.08);
-    profileShape.lineTo(0.10, 1.08);
-    profileShape.lineTo(0.95, 0.62);
-    profileShape.lineTo(1.85, 0.50);
-    profileShape.lineTo(2.05, 0.18);
-    profileShape.lineTo(1.90, 0.12);
-    profileShape.lineTo(-1.8, 0.12);
-    profileShape.closePath();
-
-    const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
-      depth: 1.64,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: 0.12,
-      bevelThickness: 0.10
-    });
-    bodyExtrude.center();
-    bodyExtrude.rotateY(Math.PI / 2);
-
-    mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
-    mainBodyMesh.position.set(0, groundClearance + 0.55, 0);
-    chassisTilt.add(mainBodyMesh);
-
-    const fArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.10, bodyPaint);
-    fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
-    const rArch = createWheelArch(wheelRadius, trackWidth + 0.08, 0.10, bodyPaint);
-    rArch.position.set(0, groundClearance + wheelRadius, -wheelBase * 0.5);
-    chassisTilt.add(fArch, rArch);
-
-    // Transparent Cabin Glass
-    const cabinShape = new THREE.Shape();
-    cabinShape.moveTo(-1.75, 0.70);
-    cabinShape.lineTo(-1.42, 1.06);
-    cabinShape.lineTo(0.08, 1.06);
-    cabinShape.lineTo(0.90, 0.64);
-    cabinShape.closePath();
-
-    const cabinExtrude = new THREE.ExtrudeGeometry(cabinShape, {
-      depth: 1.34,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.06,
-      bevelThickness: 0.06
-    });
-    cabinExtrude.center();
-    cabinExtrude.rotateY(Math.PI / 2);
-
-    const cabin = new THREE.Mesh(cabinExtrude, MATS.glass);
-    cabin.position.set(0, groundClearance + 0.57, -0.2);
-    chassisTilt.add(cabin);
-
-    const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.16, 0.55), accentPaint);
-    scoop.position.set(0, groundClearance + 1.15, -0.1);
-    chassisTilt.add(scoop);
-
-    for (let i = -0.45; i <= 0.46; i += 0.3) {
-      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 14), MATS.headlight);
-      lamp.geometry.rotateX(Math.PI / 2);
-      lamp.position.set(i, groundClearance + 0.68, 1.82);
-      chassisTilt.add(lamp);
+  // --- ПРОФИЛЬ КУЗОВА СБОКУ (X = вперёд, Y = вверх) ---
+  // Каждый профиль: капот → лобовое → крыша → корма → спойлер
+  const PROFILES = {
+    // Раллийный хэтчбек: короткий капот, высокая кабина, скошенная корма
+    rally_wrc: {
+      width: 1.72,
+      side: [
+        [-2.10, 0.16], [-2.14, 0.50], [-2.00, 0.72], [-1.60, 0.80],
+        [-1.05, 0.82], [-0.62, 1.28], [-0.30, 1.40], [0.42, 1.42],
+        [0.74, 1.36], [1.02, 1.06], [1.22, 0.88], [1.78, 0.84],
+        [2.04, 0.74], [2.16, 0.52], [2.18, 0.20], [1.60, 0.14],
+        [-1.55, 0.14]
+      ],
+      bevel: 0.10
+    },
+    // Гиперкар: низкий клин, кабина сдвинута назад, длинный нос
+    apex_gt: {
+      width: 1.80,
+      side: [
+        [-2.20, 0.12], [-2.24, 0.38], [-2.02, 0.52], [-1.42, 0.62],
+        [-0.86, 0.66], [-0.52, 1.06], [-0.10, 1.14], [0.34, 1.10],
+        [0.66, 0.92], [0.92, 0.66], [1.42, 0.58], [1.94, 0.52],
+        [2.22, 0.40], [2.30, 0.18], [1.70, 0.10], [-1.70, 0.10]
+      ],
+      bevel: 0.11
+    },
+    // JDM купе: длинный капот, низкая крыша, дактейл
+    drift_s15: {
+      width: 1.78,
+      side: [
+        [-2.16, 0.13], [-2.20, 0.42], [-2.02, 0.56], [-1.48, 0.64],
+        [-1.02, 0.68], [-0.70, 1.02], [-0.28, 1.10], [0.18, 1.06],
+        [0.48, 0.86], [0.72, 0.62], [1.30, 0.56], [1.86, 0.50],
+        [2.10, 0.38], [2.16, 0.16], [1.60, 0.10], [-1.62, 0.10]
+      ],
+      bevel: 0.10
+    },
+    // Muscle: длинный плоский капот, высокая корма, фастбек
+    muscle_v8: {
+      width: 1.86,
+      side: [
+        [-2.24, 0.14], [-2.28, 0.46], [-2.06, 0.62], [-1.50, 0.70],
+        [-1.04, 0.74], [-0.74, 1.18], [-0.34, 1.26], [0.24, 1.22],
+        [0.56, 1.00], [0.80, 0.72], [1.34, 0.66], [1.90, 0.60],
+        [2.18, 0.44], [2.24, 0.18], [1.66, 0.11], [-1.70, 0.11]
+      ],
+      bevel: 0.12
+    },
+    // Trophy truck: высокая посадка, короткая кабина, длинные свесы
+    dakar_4x4: {
+      width: 2.00,
+      side: [
+        [-2.28, 0.30], [-2.32, 0.86], [-2.10, 1.02], [-1.52, 1.08],
+        [-1.06, 1.12], [-0.78, 1.62], [-0.36, 1.72], [0.22, 1.66],
+        [0.50, 1.36], [0.68, 1.06], [1.30, 0.96], [1.94, 0.90],
+        [2.24, 0.72], [2.30, 0.40], [1.70, 0.30], [-1.72, 0.30]
+      ],
+      bevel: 0.13
     }
+  };
 
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.45), accentPaint);
-    wing.position.set(0, groundClearance + 1.16, -1.65);
-    chassisTilt.add(wing);
+  const prof = PROFILES[bodyKind] || PROFILES.rally_wrc;
 
-    const tlL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.38, 0.08), tailMat);
-    tlL.position.set(-0.7, groundClearance + 0.62, -1.98);
-    const tlR = tlL.clone();
-    tlR.position.x = 0.7;
-    chassisTilt.add(tlL, tlR);
-    tailMeshes.push(tlL, tlR);
+  // === ОСНОВНОЙ КУЗОВ: ExtrudeGeometry + фаски ===
+  const shape = new THREE.Shape();
+  prof.side.forEach((pt, i) => {
+    if (i === 0) shape.moveTo(pt[0], pt[1]);
+    else shape.lineTo(pt[0], pt[1]);
+  });
+  shape.closePath();
 
-    exhaustPoints.push(new THREE.Vector3(0.52, groundClearance + 0.22, -2.05));
-    exhaustPoints.push(new THREE.Vector3(-0.52, groundClearance + 0.22, -2.05));
+  const bodyGeo = new THREE.ExtrudeGeometry(shape, {
+    depth: prof.width,
+    bevelEnabled: true,
+    bevelSegments: 3,
+    bevelSize: prof.bevel,
+    bevelThickness: prof.bevel * 0.9,
+    curveSegments: 1,
+    steps: 1
+  });
+  bodyGeo.center();
+  bodyGeo.rotateY(Math.PI / 2);
+  bodyGeo.computeVertexNormals();
 
-  } else if (bodyKind === 'drift_s15') {
-    // 3. JDM DRIFT
-    const profileShape = new THREE.Shape();
-    profileShape.moveTo(-2.15, 0.14);
-    profileShape.lineTo(-2.15, 0.56);
-    profileShape.lineTo(-1.50, 0.62);
-    profileShape.lineTo(-0.60, 0.98);
-    profileShape.lineTo(0.25, 0.98);
-    profileShape.lineTo(1.15, 0.58);
-    profileShape.lineTo(2.05, 0.44);
-    profileShape.lineTo(2.20, 0.16);
-    profileShape.lineTo(2.05, 0.10);
-    profileShape.lineTo(-1.95, 0.10);
-    profileShape.closePath();
+  const mainBodyMesh = new THREE.Mesh(bodyGeo, bodyPaint);
+  mainBodyMesh.position.set(0, groundClearance + 0.50, 0);
+  mainBodyMesh.userData.baseY = groundClearance + 0.50;
+  mainBodyMesh.castShadow = true;
+  chassisTilt.add(mainBodyMesh);
 
-    const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
-      depth: 1.62,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: 0.12,
-      bevelThickness: 0.10
-    });
-    bodyExtrude.center();
-    bodyExtrude.rotateY(Math.PI / 2);
+  const bodyTopY = groundClearance + prof.side.reduce((m, p) => Math.max(m, p[1]), 0);
+  const halfW = prof.width * 0.5;
 
-    mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
-    mainBodyMesh.position.set(0, groundClearance + 0.5, 0);
-    chassisTilt.add(mainBodyMesh);
+  // === ОСТЕКЛЕНИЕ: лобовое + боковые + заднее (плоские панели = дёшево) ===
+  const glassGroup = new THREE.Group();
+  const wsH = 0.46;
+  const ws = new THREE.Mesh(new THREE.BoxGeometry(prof.width * 0.80, wsH, 0.06), glassMat);
+  ws.position.set(0, groundClearance + 0.98, 0.62);
+  ws.rotation.x = -0.62;
+  glassGroup.add(ws);
 
-    const fArch = createWheelArch(wheelRadius, trackWidth + 0.12, 0.12, accentPaint);
-    fArch.position.set(0, groundClearance + wheelRadius, wheelBase * 0.5);
-    const rArch = createWheelArch(wheelRadius, trackWidth + 0.14, 0.13, accentPaint);
-    rArch.position.set(0, groundClearance + wheelRadius, -wheelBase * 0.5);
+  const rear = new THREE.Mesh(new THREE.BoxGeometry(prof.width * 0.76, wsH * 0.85, 0.06), glassMat);
+  rear.position.set(0, groundClearance + 1.00, -0.86);
+  rear.rotation.x = 0.52;
+  glassGroup.add(rear);
+
+  [-1, 1].forEach(side => {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.34, 1.36), glassMat);
+    win.position.set(side * (halfW - 0.02), groundClearance + 1.04, -0.12);
+    glassGroup.add(win);
+  });
+  chassisTilt.add(glassGroup);
+
+  // === КРЫША (лаковая, чуть темнее) ===
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(prof.width * 0.84, 0.06, 1.30),
+    accentPaint
+  );
+  roof.position.set(0, groundClearance + 1.22, -0.16);
+  chassisTilt.add(roof);
+
+  // === ПЕРЕДНИЙ БАМПЕР / РЕШЁТКА / СПЛИТТЕР ===
+  const noseZ = prof.side.reduce((m, p) => Math.max(m, p[0]), 0) * 0.5;
+  const bumper = new THREE.Mesh(
+    new THREE.BoxGeometry(prof.width * 0.94, 0.22, 0.18), trimMat
+  );
+  bumper.position.set(0, groundClearance + 0.30, noseZ - 0.02);
+  chassisTilt.add(bumper);
+
+  const grille = new THREE.Mesh(
+    new THREE.BoxGeometry(prof.width * 0.52, 0.16, 0.05),
+    new THREE.MeshStandardMaterial({ color: 0x0a0b0e, metalness: 0.9, roughness: 0.5 })
+  );
+  grille.position.set(0, groundClearance + 0.50, noseZ - 0.02);
+  chassisTilt.add(grille);
+
+  // Спойлер / антикрыло
+  const wingY = bodyTopY - 0.10;
+  const wing = new THREE.Mesh(
+    new THREE.BoxGeometry(prof.width * 1.02, 0.05, 0.34), accentPaint
+  );
+  wing.position.set(0, wingY, -noseZ * 0.94);
+  chassisTilt.add(wing);
+
+  [-1, 1].forEach(side => {
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.20, 0.12), trimMat);
+    stand.position.set(side * prof.width * 0.34, wingY - 0.12, -noseZ * 0.94);
+    chassisTilt.add(stand);
+  });
+
+  // === ФАРЫ: блок + линза ===
+  const headlightBlockMat = new THREE.MeshStandardMaterial({
+    color: 0x0d1017, metalness: 0.85, roughness: 0.35
+  });
+  [-1, 1].forEach(side => {
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.16, 0.08), headlightBlockMat
+    );
+    block.position.set(side * prof.width * 0.30, groundClearance + 0.60, noseZ - 0.01);
+    block.rotation.y = side * 0.10;
+    chassisTilt.add(block);
+
+    const lens = new THREE.Mesh(
+      new THREE.BoxGeometry(0.36, 0.11, 0.04), MATS.headlightLens || MATS.headlight
+    );
+    lens.position.set(side * prof.width * 0.30, groundClearance + 0.60, noseZ + 0.015);
+    lens.rotation.y = side * 0.10;
+    chassisTilt.add(lens);
+  });
+
+  // === ЗАДНИЕ ФОНАРИ (красные) ===
+  [-1, 1].forEach(side => {
+    const tl = new THREE.Mesh(
+      new THREE.BoxGeometry(0.40, 0.14, 0.07), tailMat
+    );
+    tl.position.set(side * prof.width * 0.30, groundClearance + 0.58, -noseZ + 0.01);
+    chassisTilt.add(tl);
+    tailMeshes.push(tl);
+  });
+
+  // Задний бампер + диффузор
+  const rearBumper = new THREE.Mesh(
+    new THREE.BoxGeometry(prof.width * 0.92, 0.20, 0.16), trimMat
+  );
+  rearBumper.position.set(0, groundClearance + 0.28, -noseZ + 0.02);
+  chassisTilt.add(rearBumper);
+
+  exhaustPoints.push(new THREE.Vector3(-prof.width * 0.26, groundClearance + 0.24, -noseZ - 0.02));
+  exhaustPoints.push(new THREE.Vector3(prof.width * 0.26, groundClearance + 0.24, -noseZ - 0.02));
+
+  // === КОЛЕСНЫЕ АРКИ ===
+  if (createWheelArch) {
+    const fArch = createWheelArch(wheelRadius, trackWidth + 0.04, 0.06, bodyPaint);
+    fArch.position.set(0, groundClearance + wheelRadius - 0.06, wheelBase * 0.5);
+    const rArch = createWheelArch(wheelRadius, trackWidth + 0.06, 0.07, bodyPaint);
+    rArch.position.set(0, groundClearance + wheelRadius - 0.06, -wheelBase * 0.5);
     chassisTilt.add(fArch, rArch);
-
-    // Transparent Cabin Glass
-    const cabinShape = new THREE.Shape();
-    cabinShape.moveTo(-1.42, 0.60);
-    cabinShape.lineTo(-0.56, 0.96);
-    cabinShape.lineTo(0.22, 0.96);
-    cabinShape.lineTo(1.10, 0.60);
-    cabinShape.closePath();
-
-    const cabinExtrude = new THREE.ExtrudeGeometry(cabinShape, {
-      depth: 1.30,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.06,
-      bevelThickness: 0.06
-    });
-    cabinExtrude.center();
-    cabinExtrude.rotateY(Math.PI / 2);
-    const cabin = new THREE.Mesh(cabinExtrude, MATS.glass);
-    cabin.position.set(0, groundClearance + 0.53, -0.15);
-    chassisTilt.add(cabin);
-
-    const ducktail = new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.18, 0.4), MATS.carbon);
-    ducktail.rotation.x = -0.42;
-    ducktail.position.set(0, groundClearance + 0.68, -2.12);
-    chassisTilt.add(ducktail);
-
-    const hlL = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.12, 0.12), MATS.headlight);
-    hlL.position.set(-0.62, groundClearance + 0.38, 2.15);
-    const hlR = hlL.clone();
-    hlR.position.x = 0.62;
-    chassisTilt.add(hlL, hlR);
-
-    const tlL = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.15, 0.08), tailMat);
-    tlL.position.set(-0.55, groundClearance + 0.45, -2.18);
-    const tlR = tlL.clone();
-    tlR.position.x = 0.55;
-    chassisTilt.add(tlL, tlR);
-    tailMeshes.push(tlL, tlR);
-
-    exhaustPoints.push(new THREE.Vector3(0.64, groundClearance + 0.20, -2.32));
-    exhaustPoints.push(new THREE.Vector3(-0.64, groundClearance + 0.20, -2.32));
-
-  } else if (bodyKind === 'muscle_v8') {
-    // 4. AMERICAN MUSCLE
-    const profileShape = new THREE.Shape();
-    profileShape.moveTo(-2.25, 0.16);
-    profileShape.lineTo(-2.25, 0.60);
-    profileShape.lineTo(-1.60, 0.68);
-    profileShape.lineTo(-0.60, 1.05);
-    profileShape.lineTo(0.20, 1.05);
-    profileShape.lineTo(1.05, 0.66);
-    profileShape.lineTo(2.15, 0.54);
-    profileShape.lineTo(2.30, 0.20);
-    profileShape.lineTo(2.10, 0.12);
-    profileShape.lineTo(-2.0, 0.12);
-    profileShape.closePath();
-
-    const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
-      depth: 1.72,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: 0.12,
-      bevelThickness: 0.10
-    });
-    bodyExtrude.center();
-    bodyExtrude.rotateY(Math.PI / 2);
-
-    mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
-    mainBodyMesh.position.set(0, groundClearance + 0.54, 0);
-    chassisTilt.add(mainBodyMesh);
-
-    const strL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 4.5), accentPaint);
-    strL.position.set(-0.25, groundClearance + 0.95, 0);
-    const strR = strL.clone();
-    strR.position.x = 0.25;
-    chassisTilt.add(strL, strR);
-
-    const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 1.5), MATS.carbon);
-    scoop.position.set(0, groundClearance + 0.82, 0.9);
-    chassisTilt.add(scoop);
-
-    // Transparent Muscle Cabin Glass
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.46, 2.1), MATS.glass);
-    cabin.position.set(0, groundClearance + 0.88, -0.3);
-    chassisTilt.add(cabin);
-
-    [-0.68, -0.44, 0.44, 0.68].forEach(x => {
-      const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.12, 14), MATS.headlight);
-      hl.geometry.rotateX(Math.PI / 2);
-      hl.position.set(x, groundClearance + 0.48, 2.32);
-      chassisTilt.add(hl);
-    });
-
-    const tlL = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.06), tailMat);
-    tlL.position.set(-0.58, groundClearance + 0.48, -2.28);
-    const tlR = tlL.clone();
-    tlR.position.x = 0.58;
-    chassisTilt.add(tlL, tlR);
-    tailMeshes.push(tlL, tlR);
-
-    exhaustPoints.push(new THREE.Vector3(-0.5, groundClearance + 0.22, -2.35));
-    exhaustPoints.push(new THREE.Vector3(0.5, groundClearance + 0.22, -2.35));
-
-  } else {
-    // 5. DAKAR TROPHY TRUCK
-    const profileShape = new THREE.Shape();
-    profileShape.moveTo(-2.20, 0.20);
-    profileShape.lineTo(-2.20, 0.70);
-    profileShape.lineTo(-0.60, 0.70);
-    profileShape.lineTo(-0.40, 1.25);
-    profileShape.lineTo(0.50, 1.25);
-    profileShape.lineTo(1.20, 0.72);
-    profileShape.lineTo(2.20, 0.60);
-    profileShape.lineTo(2.35, 0.26);
-    profileShape.lineTo(2.10, 0.16);
-    profileShape.lineTo(-2.0, 0.16);
-    profileShape.closePath();
-
-    const bodyExtrude = new THREE.ExtrudeGeometry(profileShape, {
-      depth: 1.82,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: 0.14,
-      bevelThickness: 0.12
-    });
-    bodyExtrude.center();
-    bodyExtrude.rotateY(Math.PI / 2);
-
-    mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
-    mainBodyMesh.position.set(0, groundClearance + 0.65, 0);
-    chassisTilt.add(mainBodyMesh);
-
-    // Transparent Truck Cabin Glass
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.58, 1.8), MATS.glass);
-    cabin.position.set(0, groundClearance + 1.15, 0.15);
-    chassisTilt.add(cabin);
-
-    const cageGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.8, 8);
-    cageGeo.rotateZ(Math.PI / 2);
-    const cageBar = new THREE.Mesh(cageGeo, MATS.carbon);
-    cageBar.position.set(0, groundClearance + 1.5, 0.15);
-    chassisTilt.add(cageBar);
-
-    const spare = createCurvedWheel(0.52, 0.34, 'black', true);
-    spare.rotation.x = Math.PI / 3;
-    spare.position.set(0, groundClearance + 0.85, -1.35);
-    chassisTilt.add(spare);
-
-    const bullbar = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.45, 0.25), MATS.carbon);
-    bullbar.position.set(0, groundClearance + 0.42, 2.38);
-    chassisTilt.add(bullbar);
-
-    const ledBar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 0.15), MATS.headlight);
-    ledBar.position.set(0, groundClearance + 1.55, 0.35);
-    chassisTilt.add(ledBar);
-
-    const tlL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.45, 0.08), tailMat);
-    tlL.position.set(-0.76, groundClearance + 0.60, -2.25);
-    const tlR = tlL.clone();
-    tlR.position.x = 0.76;
-    chassisTilt.add(tlL, tlR);
-    tailMeshes.push(tlL, tlR);
-
-    exhaustPoints.push(new THREE.Vector3(-0.5, groundClearance + 0.26, -2.3));
-    exhaustPoints.push(new THREE.Vector3(0.5, groundClearance + 0.26, -2.3));
   }
 
-  // --- 4 WHEELS ---
+  // Боковые молдинги / пороги
+  [-1, 1].forEach(side => {
+    const skirt = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.12, wheelBase * 0.92), trimMat
+    );
+    skirt.position.set(side * (prof.width * 0.47), groundClearance + 0.22, 0);
+    chassisTilt.add(skirt);
+  });
+
+  // Зеркала
+  [-1, 1].forEach(side => {
+    const mirror = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.08, 0.09), accentPaint
+    );
+    mirror.position.set(side * (halfW + 0.04), groundClearance + 0.98, 0.42);
+    chassisTilt.add(mirror);
+  });
+
+  // === САЛОН (виден сквозь затемнённое стекло) ===
+  const cockpit = createInteriorCockpit(1.9, trackWidth * 0.66, groundClearance);
+  chassisTilt.add(cockpit);
+
+  // === КОНТАКТНАЯ ТЕНЬ ПОД ДНИЩЕМ ===
+  const shadowCanvas = document.createElement('canvas');
+  shadowCanvas.width = shadowCanvas.height = 64;
+  const sctx = shadowCanvas.getContext('2d');
+  const grad = sctx.createRadialGradient(32, 32, 2, 32, 32, 31);
+  grad.addColorStop(0, 'rgba(0,0,0,0.62)');
+  grad.addColorStop(0.55, 'rgba(0,0,0,0.34)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  sctx.fillStyle = grad;
+  sctx.fillRect(0, 0, 64, 64);
+  const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+
+  const shadowGeo = new THREE.PlaneGeometry(trackWidth + 0.9, wheelBase + 1.5);
+  shadowGeo.rotateX(-Math.PI / 2);
+  const shadowMesh = new THREE.Mesh(
+    shadowGeo,
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: 0.85, depthWrite: false })
+  );
+  shadowMesh.position.y = 0.02;
+  root.add(shadowMesh);
+
+  // === 4 КОЛЕСА: ступица + поворот + вращение ===
   const wheels = [];
   const steerPivots = [];
   const spinMeshes = [];
@@ -975,20 +847,17 @@ export function buildCar3D(carConfig) {
   const halfTrack = trackWidth * 0.5;
   const halfBase = wheelBase * 0.5;
 
-  const wheelPositions = [
-    { name: 'fl', x: -halfTrack, z: halfBase, steer: true },
-    { name: 'fr', x: halfTrack, z: halfBase, steer: true },
-    { name: 'rl', x: -halfTrack, z: -halfBase, steer: false },
-    { name: 'rr', x: halfTrack, z: -halfBase, steer: false }
-  ];
-
   const wheelStyle = (bodyKind === 'muscle_v8') ? 'gold'
     : (carConfig.id === 'retro_911' || carConfig.id === 'street_gtr') ? 'black'
     : 'sport';
-  const isGold = wheelStyle === 'gold';
   const isOffroad = (bodyKind === 'dakar_4x4' || bodyKind === 'rally_wrc');
 
-  wheelPositions.forEach((wp) => {
+  [
+    { x: -halfTrack, z: halfBase, steer: true },
+    { x: halfTrack, z: halfBase, steer: true },
+    { x: -halfTrack, z: -halfBase, steer: false },
+    { x: halfTrack, z: -halfBase, steer: false }
+  ].forEach(wp => {
     const pivot = new THREE.Group();
     pivot.position.set(wp.x, wheelRadius, wp.z);
     root.add(pivot);
@@ -999,16 +868,8 @@ export function buildCar3D(carConfig) {
     const wMesh = createCurvedWheel(wheelRadius, wheelWidth, wheelStyle, isOffroad);
     spinGroup.add(wMesh);
 
-    wheels.push({
-      pivot,
-      spinGroup,
-      isFront: wp.steer,
-      radius: wheelRadius
-    });
-
-    if (wp.steer) {
-      steerPivots.push(pivot);
-    }
+    wheels.push({ pivot, spinGroup, isFront: wp.steer, radius: wheelRadius });
+    if (wp.steer) steerPivots.push(pivot);
     spinMeshes.push(spinGroup);
   });
 
@@ -1024,50 +885,40 @@ export function buildCar3D(carConfig) {
     config: carConfig,
     setBrakeLights(isBraking) {
       const activeMat = isBraking ? MATS.taillightOn : tailMat;
-      for (let i = 0; i < tailMeshes.length; i++) {
-        tailMeshes[i].material = activeMat;
-      }
+      for (let i = 0; i < tailMeshes.length; i++) tailMeshes[i].material = activeMat;
     },
-    // Skin changing system
     applySkin(skin) {
       if (!mainBodyMesh) return;
       bodyPaint.color.set(skin.color);
       accentPaint.color.set(skin.accent);
-      if (skin.id === 'stealth' || skin.id === 'carbon') {
-        bodyPaint.map = carbonTex;
-        bodyPaint.roughness = 0.35;
-        bodyPaint.clearcoat = 0.6;
-      } else {
-        bodyPaint.map = null;
-        bodyPaint.roughness = 0.28;
-        bodyPaint.clearcoat = 1.0;
-      }
+      const isCarbon = (skin.id === 'stealth' || skin.id === 'carbon');
+      bodyPaint.map = isCarbon ? carbonTex : null;
+      bodyPaint.roughness = isCarbon ? 0.40 : 0.22;
+      bodyPaint.clearcoat = isCarbon ? 0.65 : 1.0;
       bodyPaint.needsUpdate = true;
       accentPaint.needsUpdate = true;
     },
-    // Вмятины накопительные: 3 стадии, видно сразу
     dentLevel: 0,
     applyDent() {
       this.dentLevel = Math.min(3, (this.dentLevel || 0) + 1);
       const k = this.dentLevel;
       if (mainBodyMesh) {
-        mainBodyMesh.scale.set(1 - k * 0.03, 1 - k * 0.04, 1 - k * 0.05);
-        mainBodyMesh.position.z = -0.08 * k;
-        mainBodyMesh.position.y = -0.03 * k;
-        bodyPaint.roughness = 0.28 + k * 0.15;
-        bodyPaint.clearcoat = Math.max(0, 1.0 - k * 0.35);
+        mainBodyMesh.scale.set(1 - k * 0.025, 1 - k * 0.035, 1 - k * 0.045);
+        mainBodyMesh.position.z = -0.07 * k;
+        mainBodyMesh.position.y = mainBodyMesh.userData.baseY - 0.03 * k;
+        bodyPaint.roughness = 0.22 + k * 0.14;
+        bodyPaint.clearcoat = Math.max(0, 1.0 - k * 0.32);
         bodyPaint.needsUpdate = true;
       }
-      // гнём капот/крышу визуально
-      chassisTilt.rotation.z += (Math.random() - 0.5) * 0.04;
+      chassisTilt.rotation.z += (Math.random() - 0.5) * 0.035;
     },
     repair() {
       this.dentLevel = 0;
       if (mainBodyMesh) {
         mainBodyMesh.scale.set(1, 1, 1);
         mainBodyMesh.position.z = 0;
-        mainBodyMesh.position.y = mainBodyMesh.userData.baseY !== undefined ? mainBodyMesh.userData.baseY : mainBodyMesh.position.y;
-        bodyPaint.roughness = 0.28;
+        mainBodyMesh.position.y = mainBodyMesh.userData.baseY;
+        bodyPaint.roughness = 0.22;
         bodyPaint.clearcoat = 1.0;
         bodyPaint.needsUpdate = true;
       }

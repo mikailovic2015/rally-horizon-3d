@@ -74,20 +74,39 @@ function createFoliageTexture() {
   ctx.fillStyle = '#1e481b';
   ctx.fillRect(0, 0, 256, 256);
 
-  for (let i = 0; i < 2000; i++) {
+  // Плотная листва: разная яркость
+  for (let i = 0; i < 3200; i++) {
     const x = Math.random() * 256;
     const y = Math.random() * 256;
-    const shade = Math.floor(50 + Math.random() * 85);
-    ctx.fillStyle = `rgb(${Math.floor(shade * 0.35)}, ${shade}, ${Math.floor(shade * 0.25)})`;
+    const shade = Math.floor(45 + Math.random() * 95);
+    ctx.fillStyle = `rgba(${Math.floor(shade * 0.32)}, ${shade}, ${Math.floor(shade * 0.22)}, 0.9)`;
     ctx.beginPath();
-    ctx.arc(x, y, 3 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.arc(x, y, 2.2 + Math.random() * 3.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Тёмные тени под листвой
+  for (let i = 0; i < 700; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    ctx.fillStyle = 'rgba(8, 28, 10, 0.5)';
+    ctx.beginPath();
+    ctx.arc(x, y, 2 + Math.random() * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Светлые блики на солнце
+  for (let i = 0; i < 350; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    ctx.fillStyle = 'rgba(190, 240, 150, 0.35)';
+    ctx.beginPath();
+    ctx.arc(x, y, 1.2 + Math.random() * 1.8, 0, Math.PI * 2);
     ctx.fill();
   }
 
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(2, 2);
+  tex.repeat.set(3, 3);
   return tex;
 }
 
@@ -434,20 +453,29 @@ export class GameWorld {
 
   buildProps() {
     const treeCount = 95;
+    // Двухъярусные ели: нижний + верхний ярус
     const trunkGeo = new THREE.CylinderGeometry(0.42, 0.55, 2.8, 8);
-    const foliageGeo = new THREE.ConeGeometry(2.5, 6.2, 8);
+    const foliageGeo = new THREE.ConeGeometry(2.6, 6.2, 9);
     foliageGeo.translate(0, 4.2, 0);
+    const foliageTopGeo = new THREE.ConeGeometry(1.6, 3.4, 9);
+    foliageTopGeo.translate(0, 8.2, 0);
 
-    const trunkMat = new THREE.MeshStandardMaterial({ map: this.barkTex, roughness: 0.9 });
-    const foliageMat = new THREE.MeshStandardMaterial({ map: this.foliageTex, roughness: 0.75 });
+    const trunkMat = new THREE.MeshStandardMaterial({ map: this.barkTex, roughness: 0.92 });
+    const foliageMat = new THREE.MeshStandardMaterial({ map: this.foliageTex, roughness: 0.7 });
+    const foliageTopMat = new THREE.MeshStandardMaterial({ map: this.foliageTex, roughness: 0.62, color: 0x9fd08a });
 
     const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
     const foliageInst = new THREE.InstancedMesh(foliageGeo, foliageMat, treeCount);
+    const foliageTopInst = new THREE.InstancedMesh(foliageTopGeo, foliageTopMat, treeCount);
 
-    const bushCount = 75;
-    const bushGeo = new THREE.SphereGeometry(1.5, 8, 8);
-    bushGeo.scale(1.2, 0.75, 1.2);
-    this.bushInst = new THREE.InstancedMesh(bushGeo, foliageMat, bushCount);
+    // Детальные кусты: три меша разных размеров = объёмная листва
+    const bushCount = 150;
+    const bushGeoA = new THREE.SphereGeometry(1.5, 10, 8);
+    bushGeoA.scale(1.2, 0.78, 1.2);
+    const bushGeoB = new THREE.SphereGeometry(1.0, 10, 8);
+    bushGeoB.scale(1.05, 0.7, 1.05);
+    this.bushInst  = new THREE.InstancedMesh(bushGeoA, foliageMat, bushCount);
+    this.bushInst2 = new THREE.InstancedMesh(bushGeoB, foliageTopMat, bushCount);
 
     const dummy = new THREE.Object3D();
     let seed = 42;
@@ -468,7 +496,8 @@ export class GameWorld {
 
         trunkInst.setMatrixAt(placedTrees, dummy.matrix);
         foliageInst.setMatrixAt(placedTrees, dummy.matrix);
-        this.treePositions.push({ x: rx, z: rz, radius: 1.25 });
+        foliageTopInst.setMatrixAt(placedTrees, dummy.matrix);
+        this.treePositions.push({ x: rx, z: rz, radius: 1.35 });
         placedTrees++;
       }
     }
@@ -487,6 +516,7 @@ export class GameWorld {
         dummy.updateMatrix();
 
         this.bushInst.setMatrixAt(placedBushes, dummy.matrix);
+        this.bushInst2.setMatrixAt(placedBushes, dummy.matrix);
         this.bushPositions.push({
           x: rx,
           z: rz,
@@ -502,9 +532,11 @@ export class GameWorld {
 
     trunkInst.instanceMatrix.needsUpdate = true;
     foliageInst.instanceMatrix.needsUpdate = true;
+    foliageTopInst.instanceMatrix.needsUpdate = true;
     this.bushInst.instanceMatrix.needsUpdate = true;
+    this.bushInst2.instanceMatrix.needsUpdate = true;
 
-    this.festivalGroup.add(trunkInst, foliageInst, this.bushInst);
+    this.festivalGroup.add(trunkInst, foliageInst, foliageTopInst, this.bushInst, this.bushInst2);
   }
 
   buildSpeedTraps() {
@@ -567,7 +599,7 @@ export class GameWorld {
   }
 
   spawnLeafBurst(x, y, z) {
-    const burstCount = 16;
+    const burstCount = 24;
     let spawned = 0;
     for (let i = 0; i < this.leafData.length; i++) {
       const p = this.leafData[i];
@@ -675,11 +707,96 @@ export class GameWorld {
     const radarBeam2 = radarBeam1.clone();
     radarBeam2.position.set(0, 6.2, -420);
     g.add(radarTrap2, radarBeam2);
+
+    // 6. Объездная петля (handling loop) — фигура-восьмёрка из широких дорожек
+    const loopMat = new THREE.MeshStandardMaterial({ color: 0x23272d, roughness: 0.7 });
+    const w = 16;
+    const loopPts = [];
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      const px = Math.sin(a) * 110;
+      const pz = Math.cos(a * 2) * 120 - 20;
+      loopPts.push(new THREE.Vector3(px, 0, pz));
+    }
+    const loopCurve = new THREE.CatmullRomCurve3(loopPts, true, 'centripetal');
+    const loopSamples = loopCurve.getSpacedPoints(60);
+    for (let i = 0; i < loopSamples.length; i++) {
+      const p1 = loopSamples[i];
+      const p2 = loopSamples[(i + 1) % loopSamples.length];
+      const dx = p2.x - p1.x, dz = p2.z - p1.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = -dz / len, nz = dx / len;
+      const geo = new THREE.BoxGeometry(w, 0.12, len + 0.5);
+      const mesh = new THREE.Mesh(geo, loopMat);
+      mesh.position.set((p1.x + p2.x) / 2 + nx * 0, 0.05, (p1.z + p2.z) / 2);
+      mesh.rotation.y = Math.atan2(dx, dz) + Math.PI;
+      mesh.receiveShadow = true;
+      g.add(mesh);
+    }
+    // Разметка петли
+    for (let i = 0; i < 60; i += 5) {
+      const p = loopSamples[i];
+      const next = loopSamples[(i + 1) % loopSamples.length];
+      const dx = next.x - p.x, dz = next.z - p.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.6, 0.05, 3.4),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      stripe.position.set(p.x, 0.13, p.z);
+      stripe.rotation.y = Math.atan2(dx, dz) + Math.PI;
+      g.add(stripe);
+    }
+
+    // 7. Трамплины на тест-драйве (2 шт.)
+    const rampMat2 = new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.45, metalness: 0.35 });
+    [[0, 60, Math.PI / 2], [0, -180, Math.PI / 2]].forEach(rp => {
+      const rw = 10, rl = 22, rh = 4.2;
+      const rg = new THREE.BoxGeometry(rw, rh * 0.4, rl);
+      const rm = new THREE.Mesh(rg, rampMat2);
+      rm.position.set(rp[0], rh * 0.2, rp[1]);
+      rm.rotation.x = -Math.atan2(rh * 0.6, rl) * 0.9;
+      rm.castShadow = true;
+      g.add(rm);
+      const k = new THREE.Mesh(new THREE.BoxGeometry(rw + 4, 0.3, 6), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
+      k.position.set(rp[0], 0.1, rp[1] - rl * 0.55);
+      g.add(k);
+    });
+
+    // 8. Твёрдые блоки / барьеры на тест-драйве (отмечаем как жёсткие)
+    this.testdriveSolids = [];
+    const blockGeo = new THREE.BoxGeometry(3.2, 3.2, 3.2);
+    const blockMat = new THREE.MeshStandardMaterial({ color: 0x3a3f48, roughness: 0.55, metalness: 0.3 });
+    const stripeMat2 = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+    [[-30, 140], [30, 140], [0, 120], [-30, -60], [30, -60], [0, -100], [-40, 300], [40, 300]].forEach(bp => {
+      const b = new THREE.Mesh(blockGeo, blockMat);
+      b.position.set(bp[0], 1.6, bp[1]);
+      b.castShadow = true;
+      const s2 = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.5, 3.3), stripeMat2);
+      s2.position.y = 1.5;
+      b.add(s2);
+      g.add(b);
+      this.testdriveSolids.push({ x: bp[0], z: bp[1], radius: 2.4 });
+    });
   }
 
   // --- COLLISION SYSTEMS ---
 
   checkTreeCollision(carPos, carRadius = 1.6) {
+    if (this.mapMode === 'testdrive' && this.testdriveSolids) {
+      for (let i = 0; i < this.testdriveSolids.length; i++) {
+        const t = this.testdriveSolids[i];
+        const dx = carPos.x - t.x;
+        const dz = carPos.z - t.z;
+        const minDist = t.radius + carRadius;
+        const distSq = dx * dx + dz * dz;
+        if (distSq < minDist * minDist) {
+          const dist = Math.sqrt(distSq) || 0.001;
+          return { collided: true, treeX: t.x, treeZ: t.z, overlap: minDist - dist, nx: dx / dist, nz: dz / dist };
+        }
+      }
+      return null;
+    }
     if (this.mapMode !== 'festival') return null;
     for (let i = 0; i < this.treePositions.length; i++) {
       const t = this.treePositions[i];
@@ -723,7 +840,9 @@ export class GameWorld {
         dummy.scale.set(0, 0, 0);
         dummy.updateMatrix();
         this.bushInst.setMatrixAt(b.index, dummy.matrix);
+        this.bushInst2.setMatrixAt(b.index, dummy.matrix);
         this.bushInst.instanceMatrix.needsUpdate = true;
+        this.bushInst2.instanceMatrix.needsUpdate = true;
 
         this.spawnLeafBurst(b.x, 0.4, b.z);
         return { hit: true, x: b.x, z: b.z };
@@ -748,6 +867,7 @@ export class GameWorld {
             dummy.rotation.y = b.rotY;
             dummy.updateMatrix();
             this.bushInst.setMatrixAt(b.index, dummy.matrix);
+            this.bushInst2.setMatrixAt(b.index, dummy.matrix);
             needsBushUpdate = true;
           }
         }
