@@ -178,6 +178,11 @@ export class RallyGame {
     this.controlMode = 'wheel'; // 'wheel' или 'arrows'
     this.lastCrashTime = 0;
     this.crashCooldown = 1.2;
+    this.settings = { sensitivity: 0.8, sound: true, quality: 'high' };
+    try {
+      const saved = JSON.parse(localStorage.getItem('horizon_settings') || '{}');
+      Object.assign(this.settings, saved);
+    } catch (e) {}
     this.gear = 1;
     this.rpm = 0.2;
 
@@ -479,8 +484,9 @@ export class RallyGame {
         this.carSpeed += accelPower * dt * activeThrottle;
       }
     } else if (this.input.brake > 0) {
+      const brakePower = 26 + ((carCfg.braking || 85) / 100) * 16;
       if (this.carSpeed > 1) {
-        this.carSpeed -= 34 * dt * this.input.brake;
+        this.carSpeed -= brakePower * dt * this.input.brake;
       } else {
         this.carSpeed = Math.max(-12, this.carSpeed - 8 * dt * this.input.brake);
       }
@@ -496,12 +502,13 @@ export class RallyGame {
     const speedKmh = Math.abs(this.carSpeed * 3.6);
     const rawSteer = this.input.steer || 0;
     const deadSteer = Math.abs(rawSteer) < 0.06 ? 0 : rawSteer;
-    const curvedSteer = Math.sign(deadSteer) * Math.pow(Math.abs(deadSteer), 1.35);
+    const curvedSteer = Math.sign(deadSteer) * Math.pow(Math.abs(deadSteer), 1.5);
     const handlingFactor = 0.55 + ((carCfg.handling || 80) / 100) * 0.35;
-    const speedDamp = Math.max(0.38, 1.0 - (speedKmh / 300));
+    const speedDamp = Math.max(0.30, 1.0 - (speedKmh / 260));
     const reversing = this.carSpeed < -0.5 ? -1 : 1;
-    const targetSteer = curvedSteer * 0.42 * handlingFactor * speedDamp * reversing;
-    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * 7);
+    const sens = (this.settings && this.settings.sensitivity) || 0.8;
+    const targetSteer = curvedSteer * 0.30 * handlingFactor * speedDamp * sens * reversing;
+    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * 5);
 
     // Drift physics
     const driftTendency = (carCfg.driftFactor / 100);
@@ -568,25 +575,42 @@ export class RallyGame {
     this.audio.updateEngine(this.rpm, speedKmh, activeThrottle > 0 || this.nitroActive);
     this.audio.updateDrift(this.isDrifting, speedKmh);
 
-    // Кусты разлетаются, деревья бьют кузов
+    // Кусты, деревья, границы карты
     if (this.world.checkBushCollision) {
       const bushHit = this.world.checkBushCollision(this.carPos, speedKmh);
-      if (bushHit) {
-        this.audio.playCheckpoint();
-      }
+      if (bushHit) this.audio.playCheckpoint();
     }
     if (this.world.checkTreeCollision) {
-      const now = this.clock.getElapsedTime();
-      const treeHit = this.world.checkTreeCollision(this.carPos, 1.6);
-      if (treeHit && (now - this.lastCrashTime) > this.crashCooldown) {
-        this.lastCrashTime = now;
-        // Выталкиваем машину из дерева и гасим скорость
+      for (let iter = 0; iter < 3; iter++) {
+        const treeHit = this.world.checkTreeCollision(this.carPos, 1.6);
+        if (!treeHit || !treeHit.collided) break;
         this.carPos.x = treeHit.treeX + treeHit.nx * (treeHit.overlap + 1.7);
         this.carPos.z = treeHit.treeZ + treeHit.nz * (treeHit.overlap + 1.7);
-        this.carSpeed *= 0.35;
-        if (this.car3D && this.car3D.applyDent) this.car3D.applyDent();
-        this.audio.playBeep(false);
-        this.showNotification('Вмятина кузова! Осторожно — дерево!', 'drift');
+        const now2 = this.clock.getElapsedTime();
+        if (Math.abs(this.carSpeed) > 6 && (now2 - this.lastCrashTime) > this.crashCooldown) {
+          this.lastCrashTime = now2;
+          this.carSpeed *= 0.35;
+          if (this.car3D && this.car3D.applyDent) this.car3D.applyDent();
+          this.audio.playBeep(false);
+          this.showNotification('Вмятина кузова! Дерево!', 'drift');
+        } else {
+          this.carSpeed *= 0.9;
+        }
+      }
+    }
+    {
+      const LIM = 740;
+      if (Math.abs(this.carPos.x) > LIM || Math.abs(this.carPos.z) > LIM) {
+        this.carPos.x = Math.max(-LIM, Math.min(LIM, this.carPos.x));
+        this.carPos.z = Math.max(-LIM, Math.min(LIM, this.carPos.z));
+        const now3 = this.clock.getElapsedTime();
+        if (Math.abs(this.carSpeed) > 10 && (now3 - this.lastCrashTime) > this.crashCooldown) {
+          this.lastCrashTime = now3;
+          if (this.car3D && this.car3D.applyDent) this.car3D.applyDent();
+          this.audio.playBeep(false);
+          this.showNotification('Граница карты! Разворачивайся.', 'drift');
+        }
+        this.carSpeed *= 0.5;
       }
     }
 

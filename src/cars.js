@@ -15,6 +15,7 @@ export const CARS_DATA = [
     driftFactor: 85,
     offroadGrip: 98,
     mass: 1180,
+    braking: 88,
     specs: { speed: '215 км/ч', accel: '3.2 с', grip: 'S (Грунт)' },
     skins: [
       { id: 'stock', name: 'WRC Factory', color: '#ff4500', accent: '#ffffff', price: 0 },
@@ -37,6 +38,7 @@ export const CARS_DATA = [
     driftFactor: 100,
     offroadGrip: 50,
     mass: 1120,
+    braking: 82,
     specs: { speed: '235 км/ч', accel: '3.4 с', grip: 'Дрифт 100%' },
     skins: [
       { id: 'stock', name: 'Midnight Purple', color: '#9900ff', accent: '#00ffcc', price: 0 },
@@ -59,6 +61,7 @@ export const CARS_DATA = [
     driftFactor: 88,
     offroadGrip: 55,
     mass: 1550,
+    braking: 78,
     specs: { speed: '260 км/ч', accel: '3.0 с', grip: 'V8 Сила' },
     skins: [
       { id: 'stock', name: 'Black & Gold', color: '#18181c', accent: '#ffbb00', price: 0 },
@@ -81,6 +84,7 @@ export const CARS_DATA = [
     driftFactor: 75,
     offroadGrip: 100,
     mass: 1750,
+    braking: 90,
     specs: { speed: '195 км/ч', accel: '3.6 с', grip: 'Вездеход' },
     skins: [
       { id: 'stock', name: 'Baja Lime', color: '#22ee44', accent: '#1a1a1a', price: 0 },
@@ -102,12 +106,82 @@ export const CARS_DATA = [
     driftFactor: 70,
     offroadGrip: 45,
     mass: 1200,
+    braking: 97,
     specs: { speed: '295 км/ч', accel: '2.4 с', grip: 'A+' },
     skins: [
       { id: 'stock', name: 'Cyan Horizon', color: '#00d2ff', accent: '#111318', price: 0 },
       { id: 'lava', name: 'Lava Orange', color: '#ff3300', accent: '#151515', price: 2000 },
       { id: 'stealth', name: 'Stealth Carbon', color: '#111215', accent: '#00ffff', price: 3500 },
       { id: 'gold', name: 'Pure Gold VIP', color: '#ffcc00', accent: '#111111', price: 5000 }
+    ]
+  },
+  {
+    id: 'street_gtr',
+    body: 'apex_gt',
+    name: 'Street GTR-X',
+    type: 'Street Sport',
+    price: 9000,
+    description: 'Городской спорткар с плавными линиями, карбоновым капотом и launch-контролем.',
+    color: '#c0c8d4',
+    accentColor: '#ff2244',
+    topSpeed: 248,
+    acceleration: 90,
+    handling: 90,
+    driftFactor: 78,
+    offroadGrip: 55,
+    braking: 92,
+    mass: 1380,
+    specs: { speed: '248 км/ч', accel: '3.0 с', grip: 'A (Асфальт)' },
+    skins: [
+      { id: 'stock', name: 'Silver Storm', color: '#c0c8d4', accent: '#ff2244', price: 0 },
+      { id: 'midnight', name: 'Midnight Blue', color: '#0a1a5a', accent: '#00eaff', price: 1300 },
+      { id: 'carbon', name: 'Carbon Stealth', color: '#141416', accent: '#ff2244', price: 2600 }
+    ]
+  },
+  {
+    id: 'euro_rs',
+    body: 'rally_wrc',
+    name: 'Euro RS Turbo',
+    type: 'Rally Raid',
+    price: 18000,
+    description: 'Европейский турбо-хэтч с полным приводом: цепкий, юркий, любит грунтовку.',
+    color: '#0066ff',
+    accentColor: '#ffffff',
+    topSpeed: 228,
+    acceleration: 93,
+    handling: 91,
+    driftFactor: 80,
+    offroadGrip: 95,
+    braking: 89,
+    mass: 1250,
+    specs: { speed: '228 км/ч', accel: '2.9 с', grip: 'S (Микс)' },
+    skins: [
+      { id: 'stock', name: 'Works Blue', color: '#0066ff', accent: '#ffffff', price: 0 },
+      { id: 'gravel', name: 'Gravel Gold', color: '#d4a017', accent: '#111111', price: 1400 },
+      { id: 'carbon', name: 'Night Carbon', color: '#15161a', accent: '#0066ff', price: 2400 }
+    ]
+  },
+  {
+    id: 'retro_911',
+    body: 'drift_s15',
+    name: 'Retro Turbo 911',
+    type: 'Classic Sport',
+    price: 26000,
+    description: 'Легендарное ретро-купе с оппозитным турбо: плавное, задорное, дрифтит охотно.',
+    color: '#ffcc33',
+    accentColor: '#151515',
+    topSpeed: 268,
+    acceleration: 95,
+    handling: 87,
+    driftFactor: 92,
+    offroadGrip: 52,
+    braking: 90,
+    mass: 1290,
+    specs: { speed: '268 км/ч', accel: '2.8 с', grip: 'Классика' },
+    skins: [
+      { id: 'stock', name: 'Sun Yellow', color: '#ffcc33', accent: '#151515', price: 0 },
+      { id: 'martini', name: 'Martini Race', color: '#ffffff', accent: '#ff0033', price: 1800 },
+      { id: 'carbon', name: 'Black Edition', color: '#101114', accent: '#ffcc33', price: 2800 }
     ]
   }
 ];
@@ -206,12 +280,17 @@ const headlightTex = createHeadlightTexture();
 
 // Reusable Materials with TRANSPARENT GLASS
 const MATS = {
-  glass: new THREE.MeshStandardMaterial({
-    color: 0x88bbdd,
-    roughness: 0.08,
-    metalness: 0.85,
+  glass: new THREE.MeshPhysicalMaterial({
+    color: 0x9fd4ff,
+    roughness: 0.04,
+    metalness: 0.1,
     transparent: true,
-    opacity: 0.38
+    opacity: 0.28,
+    transmission: 0.0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.05,
+    depthWrite: false,
+    side: THREE.DoubleSide
   }),
   interiorDark: new THREE.MeshStandardMaterial({
     color: 0x15161a,
@@ -235,18 +314,35 @@ const MATS = {
   }),
   tire: new THREE.MeshStandardMaterial({
     map: tireTex,
-    roughness: 0.85,
-    metalness: 0.08
+    roughness: 0.9,
+    metalness: 0.02
   }),
-  rimSilver: new THREE.MeshStandardMaterial({
-    color: 0xe8edf2,
+  tireOffroad: new THREE.MeshStandardMaterial({
+    map: tireTex,
+    roughness: 0.95,
+    metalness: 0.01,
+    color: 0x1a1a1a
+  }),
+  rimSilver: new THREE.MeshPhysicalMaterial({
+    color: 0xc0c8d4,
     roughness: 0.18,
-    metalness: 0.95
+    metalness: 0.95,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.05
   }),
-  rimGold: new THREE.MeshStandardMaterial({
-    color: 0xffb700,
-    roughness: 0.2,
-    metalness: 0.92
+  rimGold: new THREE.MeshPhysicalMaterial({
+    color: 0xd4af37,
+    roughness: 0.15,
+    metalness: 0.98,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.04
+  }),
+  rimBlack: new THREE.MeshPhysicalMaterial({
+    color: 0x141518,
+    roughness: 0.12,
+    metalness: 0.92,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06
   }),
   brakeDisc: new THREE.MeshStandardMaterial({
     map: brakeDiscTex,
@@ -266,6 +362,15 @@ const MATS = {
   headlight: new THREE.MeshBasicMaterial({
     map: headlightTex
   }),
+  headlightLens: new THREE.MeshPhysicalMaterial({
+    color: 0xffffee,
+    roughness: 0.0,
+    metalness: 0.0,
+    transmission: 0.95,
+    thickness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0
+  }),
   taillightOff: new THREE.MeshStandardMaterial({
     color: 0x440000,
     roughness: 0.3,
@@ -284,46 +389,84 @@ const MATS = {
 /**
  * Creates 3D sport wheel
  */
-function createCurvedWheel(radius = 0.36, width = 0.28, isGold = false, isOffroad = false) {
+/**
+ * Creates 3D sport wheel — стильный диск под машину
+ */
+function createCurvedWheel(radius = 0.36, width = 0.28, wheelStyle = 'sport', isOffroad = false) {
   const wheelGroup = new THREE.Group();
 
-  const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 24);
+  // Шина
+  const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 28);
   tireGeo.rotateZ(Math.PI / 2);
-  const tire = new THREE.Mesh(tireGeo, MATS.tire);
+  const tireMat = isOffroad ? MATS.tireOffroad : MATS.tire;
+  const tire = new THREE.Mesh(tireGeo, tireMat);
   wheelGroup.add(tire);
 
-  const rimR = isOffroad ? radius * 0.6 : radius * 0.74;
-  const rimGeo = new THREE.CylinderGeometry(rimR, rimR * 0.88, width + 0.016, 20);
+  // Диск
+  const rimR = isOffroad ? radius * 0.58 : radius * 0.72;
+  const rimGeo = new THREE.CylinderGeometry(rimR, rimR * 0.9, width + 0.012, 24);
   rimGeo.rotateZ(Math.PI / 2);
-  const rimMat = isGold ? MATS.rimGold : MATS.rimSilver;
+  let rimMat = MATS.rimSilver;
+  if (wheelStyle === 'gold') rimMat = MATS.rimGold;
+  else if (wheelStyle === 'black') rimMat = MATS.rimBlack;
   const rim = new THREE.Mesh(rimGeo, rimMat);
   wheelGroup.add(rim);
 
-  const spokeCount = isOffroad ? 6 : 5;
-  const spokeLen = rimR * 0.74;
+  // Спицы по стилю
+  let spokeCount, spokeShape;
+  if (wheelStyle === 'gold') { spokeCount = 5; spokeShape = 'Y'; }
+  else if (wheelStyle === 'black') { spokeCount = 10; spokeShape = 'split5'; }
+  else if (isOffroad) { spokeCount = 6; spokeShape = 'solid'; }
+  else { spokeCount = 8; spokeShape = 'split5'; }
+
+  const spokeLen = rimR * 0.7;
   for (let i = 0; i < spokeCount; i++) {
     const angle = (i / spokeCount) * Math.PI * 2;
-    const spokeGeo = new THREE.BoxGeometry(width + 0.02, spokeLen, 0.06);
-    const spoke = new THREE.Mesh(spokeGeo, rimMat);
-    spoke.rotation.x = angle;
+    let spoke;
+    if (spokeShape === 'Y') {
+      const sg = new THREE.CylinderGeometry(0.035, 0.055, spokeLen * 0.6, 6);
+      sg.rotateX(Math.PI / 2);
+      spoke = new THREE.Mesh(sg, rimMat);
+      spoke.rotation.z = angle;
+    } else if (spokeShape === 'split5') {
+      const sg = new THREE.BoxGeometry(width + 0.015, spokeLen * 0.55, 0.045);
+      spoke = new THREE.Mesh(sg, rimMat);
+      spoke.rotation.x = angle;
+    } else { // solid
+      const sg = new THREE.BoxGeometry(width + 0.02, spokeLen * 0.65, 0.05);
+      spoke = new THREE.Mesh(sg, rimMat);
+      spoke.rotation.x = angle;
+    }
     spoke.position.set(0, (spokeLen * 0.5) * Math.cos(angle), (spokeLen * 0.5) * Math.sin(angle));
     wheelGroup.add(spoke);
   }
 
-  const hubGeo = new THREE.CylinderGeometry(rimR * 0.26, rimR * 0.26, width + 0.035, 12);
+  // Хаб
+  const hubGeo = new THREE.CylinderGeometry(rimR * 0.24, rimR * 0.24, width + 0.03, 16);
   hubGeo.rotateZ(Math.PI / 2);
   const hub = new THREE.Mesh(hubGeo, MATS.carbon);
   wheelGroup.add(hub);
 
-  const discGeo = new THREE.CylinderGeometry(rimR * 0.84, rimR * 0.84, 0.035, 18);
+  // Диск тормоза
+  const discGeo = new THREE.CylinderGeometry(rimR * 0.82, rimR * 0.82, 0.03, 20);
   discGeo.rotateZ(Math.PI / 2);
   const disc = new THREE.Mesh(discGeo, MATS.brakeDisc);
-  wheelGroup.add(disc);
+  wheelGroup.add(disc)
 
-  const caliperGeo = new THREE.BoxGeometry(0.08, rimR * 0.48, 0.12);
+  // Калипер
+  const caliperGeo = new THREE.BoxGeometry(0.07, rimR * 0.45, 0.11);
   const caliper = new THREE.Mesh(caliperGeo, MATS.caliperRed);
-  caliper.position.set(0, rimR * 0.55, 0);
+  caliper.position.set(0, rimR * 0.52, 0);
   wheelGroup.add(caliper);
+
+  // Болты на ободе
+  for (let i = 0; i < 5; i++) {
+    const ba = (i / 5) * Math.PI * 2;
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.025, 8), MATS.chrome);
+    bolt.rotation.x = Math.PI / 2;
+    bolt.position.set(Math.cos(ba) * (rimR - 0.03), Math.sin(ba) * (rimR - 0.03), width * 0.5 + 0.005);
+    wheelGroup.add(bolt);
+  }
 
   return wheelGroup;
 }
@@ -390,17 +533,21 @@ export function buildCar3D(carConfig) {
   const chassisTilt = new THREE.Group();
   root.add(chassisTilt);
 
-  // Metallic paint material
-  const bodyPaint = new THREE.MeshStandardMaterial({
+  // Гладкая современная краска с лаком
+  const bodyPaint = new THREE.MeshPhysicalMaterial({
     color: carConfig.color,
-    metalness: 0.74,
-    roughness: 0.16
+    metalness: 0.55,
+    roughness: 0.28,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.08
   });
 
-  const accentPaint = new THREE.MeshStandardMaterial({
+  const accentPaint = new THREE.MeshPhysicalMaterial({
     color: carConfig.accentColor,
-    metalness: 0.65,
-    roughness: 0.22
+    metalness: 0.6,
+    roughness: 0.25,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1
   });
 
   const tailMat = MATS.taillightOff.clone();
@@ -413,13 +560,13 @@ export function buildCar3D(carConfig) {
   let wheelBase = 2.65;
   let groundClearance = 0.30;
 
-  if (carConfig.id === 'dakar_4x4') {
+  if (bodyKind === 'dakar_4x4') {
     wheelRadius = 0.52;
     wheelWidth = 0.36;
     trackWidth = 1.95;
     wheelBase = 2.85;
     groundClearance = 0.58;
-  } else if (carConfig.id === 'apex_gt') {
+  } else if (bodyKind === 'apex_gt') {
     wheelRadius = 0.34;
     wheelWidth = 0.30;
     trackWidth = 1.74;
@@ -441,7 +588,8 @@ export function buildCar3D(carConfig) {
   let mainBodyMesh = null;
 
   // --- CAR SPECIFIC BODY BUILDERS ---
-  if (carConfig.id === 'apex_gt') {
+  const bodyKind = carConfig.body || carConfig.id;
+  if (bodyKind === 'apex_gt') {
     // 1. HYPERCAR
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.25, 0.15);
@@ -468,6 +616,7 @@ export function buildCar3D(carConfig) {
 
     mainBodyMesh = new THREE.Mesh(bodyExtrude, bodyPaint);
     mainBodyMesh.position.set(0, groundClearance + 0.5, 0);
+    mainBodyMesh.userData.baseY = groundClearance + 0.5;
     chassisTilt.add(mainBodyMesh);
 
     // Flared muscular wheel arches
@@ -535,7 +684,7 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(-0.16, groundClearance + 0.26, -2.35));
     exhaustPoints.push(new THREE.Vector3(0.16, groundClearance + 0.26, -2.35));
 
-  } else if (carConfig.id === 'rally_wrc') {
+  } else if (bodyKind === 'rally_wrc') {
     // 2. WRC RALLY
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-1.95, 0.16);
@@ -616,7 +765,7 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(0.52, groundClearance + 0.22, -2.05));
     exhaustPoints.push(new THREE.Vector3(-0.52, groundClearance + 0.22, -2.05));
 
-  } else if (carConfig.id === 'drift_s15') {
+  } else if (bodyKind === 'drift_s15') {
     // 3. JDM DRIFT
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.15, 0.14);
@@ -693,7 +842,7 @@ export function buildCar3D(carConfig) {
     exhaustPoints.push(new THREE.Vector3(0.64, groundClearance + 0.20, -2.32));
     exhaustPoints.push(new THREE.Vector3(-0.64, groundClearance + 0.20, -2.32));
 
-  } else if (carConfig.id === 'muscle_v8') {
+  } else if (bodyKind === 'muscle_v8') {
     // 4. AMERICAN MUSCLE
     const profileShape = new THREE.Shape();
     profileShape.moveTo(-2.25, 0.16);
@@ -794,7 +943,7 @@ export function buildCar3D(carConfig) {
     cageBar.position.set(0, groundClearance + 1.5, 0.15);
     chassisTilt.add(cageBar);
 
-    const spare = createCurvedWheel(0.52, 0.34, false, true);
+    const spare = createCurvedWheel(0.52, 0.34, 'black', true);
     spare.rotation.x = Math.PI / 3;
     spare.position.set(0, groundClearance + 0.85, -1.35);
     chassisTilt.add(spare);
@@ -833,8 +982,11 @@ export function buildCar3D(carConfig) {
     { name: 'rr', x: halfTrack, z: -halfBase, steer: false }
   ];
 
-  const isGold = (carConfig.id === 'muscle_v8' || carConfig.id === 'drift_s15');
-  const isOffroad = (carConfig.id === 'dakar_4x4' || carConfig.id === 'rally_wrc');
+  const wheelStyle = (bodyKind === 'muscle_v8') ? 'gold'
+    : (carConfig.id === 'retro_911' || carConfig.id === 'street_gtr') ? 'black'
+    : 'sport';
+  const isGold = wheelStyle === 'gold';
+  const isOffroad = (bodyKind === 'dakar_4x4' || bodyKind === 'rally_wrc');
 
   wheelPositions.forEach((wp) => {
     const pivot = new THREE.Group();
@@ -844,7 +996,7 @@ export function buildCar3D(carConfig) {
     const spinGroup = new THREE.Group();
     pivot.add(spinGroup);
 
-    const wMesh = createCurvedWheel(wheelRadius, wheelWidth, isGold, isOffroad);
+    const wMesh = createCurvedWheel(wheelRadius, wheelWidth, wheelStyle, isOffroad);
     spinGroup.add(wMesh);
 
     wheels.push({
@@ -883,24 +1035,43 @@ export function buildCar3D(carConfig) {
       accentPaint.color.set(skin.accent);
       if (skin.id === 'stealth' || skin.id === 'carbon') {
         bodyPaint.map = carbonTex;
-        bodyPaint.needsUpdate = true;
+        bodyPaint.roughness = 0.35;
+        bodyPaint.clearcoat = 0.6;
       } else {
         bodyPaint.map = null;
+        bodyPaint.roughness = 0.28;
+        bodyPaint.clearcoat = 1.0;
+      }
+      bodyPaint.needsUpdate = true;
+      accentPaint.needsUpdate = true;
+    },
+    // Вмятины накопительные: 3 стадии, видно сразу
+    dentLevel: 0,
+    applyDent() {
+      this.dentLevel = Math.min(3, (this.dentLevel || 0) + 1);
+      const k = this.dentLevel;
+      if (mainBodyMesh) {
+        mainBodyMesh.scale.set(1 - k * 0.03, 1 - k * 0.04, 1 - k * 0.05);
+        mainBodyMesh.position.z = -0.08 * k;
+        mainBodyMesh.position.y = -0.03 * k;
+        bodyPaint.roughness = 0.28 + k * 0.15;
+        bodyPaint.clearcoat = Math.max(0, 1.0 - k * 0.35);
         bodyPaint.needsUpdate = true;
       }
-    },
-    // Crash dent deformation
-    applyDent() {
-      if (mainBodyMesh) {
-        mainBodyMesh.scale.z = 0.94;
-        mainBodyMesh.position.z = -0.08;
-      }
+      // гнём капот/крышу визуально
+      chassisTilt.rotation.z += (Math.random() - 0.5) * 0.04;
     },
     repair() {
+      this.dentLevel = 0;
       if (mainBodyMesh) {
-        mainBodyMesh.scale.z = 1.0;
+        mainBodyMesh.scale.set(1, 1, 1);
         mainBodyMesh.position.z = 0;
+        mainBodyMesh.position.y = mainBodyMesh.userData.baseY !== undefined ? mainBodyMesh.userData.baseY : mainBodyMesh.position.y;
+        bodyPaint.roughness = 0.28;
+        bodyPaint.clearcoat = 1.0;
+        bodyPaint.needsUpdate = true;
       }
+      chassisTilt.rotation.z = 0;
     }
   };
 }
